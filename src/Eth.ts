@@ -28,6 +28,7 @@ export interface ContractInfo {
 }
 
 export interface EthParams {
+  privateKey: string;
   httpProviderUrl: string; //_config.network.rpc_url
   ERC20ContractInfo: ContractInfo; //_config.network.contracts.erc20
   faucetServerUrl: string; //_config.faucet.get_acc_url
@@ -69,21 +70,32 @@ export class Eth {
     return new this._web3.eth.Contract(abi, address);
   }
   async initAccount() {
-    let privateKey = await DB.get("privateKey");
-
+    const { privateKey } = this._params;
     if (!privateKey) {
-      // TODO put to config
-      // if (process.env.DC_NETWORK === 'sdk') {
-      //     privateKey = '0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5'
-      // } else
-      try {
-        privateKey = await this.getAccountFromServer();
-      } catch (error) {
-        throw new Error("Faucet server is not responding");
+      console.error(`Bankroller account PRIVATE_KEY required!`);
+      console.info(`set ENV variable privateKey`);
+
+      if (process.env.DC_NETWORK === "ropsten") {
+        console.info(`You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
+          or use this random ${
+            this._web3.eth.accounts.create().privateKey
+          } , but send Ropsten ETH and BETs to it before using
+        `);
+      } else if (process.env.DC_NETWORK === "sdk") {
+        console.info(
+          `For local SDK env you can use this privkey: 0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5`
+        );
+      } else {
+        console.info(
+          `You can use this privkey: ${
+            this._web3.eth.accounts.create().privateKey
+          }, but be sure that account have ETH and BETs `
+        );
       }
 
-      await DB.set("privateKey", privateKey);
+      process.exit();
     }
+
     this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey);
     this._web3.eth.accounts.wallet.add(privateKey);
     return true;
