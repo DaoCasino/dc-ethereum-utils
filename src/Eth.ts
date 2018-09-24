@@ -1,6 +1,7 @@
 import BN from "bn.js";
 import Web3 from "web3";
-import DB from "./DB";
+
+import { config, ContractInfo } from "dc-configs";
 import fetch from "node-fetch";
 import { sign as signHash } from "eth-lib/lib/account.js";
 import * as Utils from "./utils";
@@ -21,10 +22,6 @@ export interface GasParams {
   //_config.network
   price: number;
   limit: number;
-}
-export interface ContractInfo {
-  abi: string;
-  address: string;
 }
 
 export interface EthParams {
@@ -177,10 +174,13 @@ export class Eth {
     Utils.debugLog(["Server account data: ", this._store.account_from_server]);
     return this._store.account_from_server.privateKey;
   }
-  async ERC20ApproveSafe(spender: string, amount: number) {
-    let allowance = await this._ERC20Contract.methods
+  allowance(spender: string): Promise<any> {
+    return this._ERC20Contract.methods
       .allowance(this._account.address, spender)
       .call();
+  }
+  async ERC20ApproveSafe(spender: string, amount: number) {
+    let allowance = await this.allowance(spender);
     if (0 < allowance && allowance < amount) {
       await this.ERC20Approve(spender, 0);
     }
