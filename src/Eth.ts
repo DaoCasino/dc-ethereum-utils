@@ -1,10 +1,11 @@
 import BN from "bn.js";
 import Web3 from "web3";
-
+import crypto from "crypto";
 import { config, ContractInfo } from "dc-configs";
 import fetch from "node-fetch";
 import { sign as signHash } from "eth-lib/lib/account.js";
 import * as Utils from "./utils";
+import Contract from "web3/eth/contract";
 
 interface Balance {
   balance?: number;
@@ -33,7 +34,7 @@ export interface EthParams {
 }
 
 export class Eth {
-  private _web3;
+  private _web3: Web3;
   private _getAccountPromise: Promise<string>;
   private _cache: Cache;
   private _ERC20Contract: any;
@@ -109,7 +110,13 @@ export class Eth {
     }
     return signHash(hash, Utils.add0x(this._account.privateKey));
   }
-
+  // signHash2(rawHash) {
+  //   const hash = Utils.add0x(rawHash);
+  //   const privateKey = Utils.add0x(this._account.privateKey)
+  //   const curve = crypto.createSign('secp256k1');
+  //   curve.setPrivateKey(Buffer.from(privateKey, 'hex'))
+  //   return crypto.
+  // }
   recover(state_hash, sign): string {
     return this._web3.eth.accounts.recover(state_hash, sign);
   }
@@ -117,7 +124,7 @@ export class Eth {
     return this._web3.eth.getBlockNumber();
   }
   randomHash() {
-    return this._account.sign(Utils.makeSeed()).messageHash;
+    return crypto.randomBytes(16).toString("hex");
   }
 
   numFromHash(randomHash, min = 0, max = 100) {
@@ -174,10 +181,11 @@ export class Eth {
     Utils.debugLog(["Server account data: ", this._store.account_from_server]);
     return this._store.account_from_server.privateKey;
   }
-  allowance(spender: string): Promise<any> {
-    return this._ERC20Contract.methods
-      .allowance(this._account.address, spender)
-      .call();
+  allowance(
+    spender: string,
+    address: string = this._account.address
+  ): Promise<any> {
+    return this._ERC20Contract.methods.allowance(address, spender).call();
   }
   async ERC20ApproveSafe(spender: string, amount: number) {
     let allowance = await this.allowance(spender);
@@ -205,8 +213,9 @@ export class Eth {
     }
   }
 
-  async getBalances(): Promise<LastBalances> {
-    const { address } = this._account;
+  async getBalances(
+    address: string = this._account.address
+  ): Promise<LastBalances> {
     this._cache.lastBalances.bet = await this.getBetBalance(address);
     this._cache.lastBalances.eth = await this.getEthBalance(address);
     return this._cache.lastBalances;
@@ -217,7 +226,7 @@ export class Eth {
     const weiBalance = await this._web3.eth.getBalance(address);
     const bnBalance: any = this._web3.utils.fromWei(weiBalance, "ether");
     return {
-      balance: bnBalance.toNumber(),
+      balance: Number(bnBalance),
       updated: Date.now()
     };
   }
