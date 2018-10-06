@@ -1,11 +1,11 @@
-import NeDB from "nedb";
-import path from "path";
-import * as Utils from "./utils";
+import NeDB from 'nedb';
+import path from 'path';
+import * as Utils from './utils';
 
 const dbfile = path.join(
   path.resolve(),
-  `/${process.env.DATA_PATH || "/data/"}/DB/${process.env.DATA_SUBPATH ||
-    "/d1/"}/${process.env.DC_NETWORK || "local"}.db`
+  `/${process.env.DATA_PATH || '/data/'}/DB/${process.env.DATA_SUBPATH ||
+    '/d1/'}/${process.env.DC_NETWORK || 'local'}.db`
 );
 
 class DB {
@@ -22,7 +22,7 @@ class DB {
       this._keyValueDB.findOne({ k: key }, (err, doc) => {
         // console.log('err:', err)
         // console.log('doc:', doc)
-        if (err) Utils.debugLog(["Err", err], "error");
+        if (err) Utils.debugLog(['Err', err], 'error');
         let value = null;
         if (doc && doc.v) value = doc.v;
         resolve(value);
@@ -38,7 +38,7 @@ class DB {
           { k: key },
           { $set: { v: val } },
           (err, doc) => {
-            if (err) Utils.debugLog(["Err ", err], "error");
+            if (err) Utils.debugLog(['Err ', err], 'error');
             resolve(doc);
           }
         );
@@ -46,7 +46,7 @@ class DB {
       }
 
       this._keyValueDB.insert({ k: key, v: val }, (err, doc) => {
-        if (err) Utils.debugLog(["Err ", err], "error");
+        if (err) Utils.debugLog(['Err ', err], 'error');
         resolve(doc);
         return doc;
       });
