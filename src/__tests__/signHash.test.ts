@@ -1,6 +1,6 @@
-import { config } from "dc-configs";
-import { Eth } from "../Eth";
-import * as Utils from "../utils";
+import { config } from 'dc-configs';
+import { Eth } from '../Eth';
+import * as Utils from '../utils';
 
 const {
   gasPrice: price,
