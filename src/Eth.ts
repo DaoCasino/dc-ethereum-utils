@@ -3,7 +3,7 @@ import Web3 from "web3";
 import crypto from "crypto";
 import { config, ContractInfo } from "dc-configs";
 import fetch from "node-fetch";
-import { sign as signHash } from "eth-lib/lib/account.js";
+import { sign, recover } from "eth-lib/lib/account.js";
 import * as Utils from "./utils";
 import Contract from "web3/eth/contract";
 
@@ -37,6 +37,8 @@ export class Eth {
   private _web3: Web3;
   private _getAccountPromise: Promise<string>;
   private _cache: Cache;
+  private _sign: any;
+  private _recover: any;
   private _ERC20Contract: any;
   private _payChannelContract: any;
   private _account: any;
@@ -44,6 +46,8 @@ export class Eth {
   private _params: EthParams;
   constructor(params: EthParams) {
     this._params = params;
+    this._sign = sign;
+    this._recover = recover;
     this._web3 = new Web3(
       new Web3.providers.HttpProvider(params.httpProviderUrl)
     );
@@ -108,8 +112,9 @@ export class Eth {
         "Use DCLib.Utils.makeSeed or Utils.soliditySHA3(your_args) to create valid hash"
       );
     }
-    return signHash(hash, Utils.add0x(this._account.privateKey));
+    return this._sign(hash, Utils.add0x(this._account.privateKey));
   }
+  
   // signHash2(rawHash) {
   //   const hash = Utils.add0x(rawHash);
   //   const privateKey = Utils.add0x(this._account.privateKey)
@@ -117,12 +122,15 @@ export class Eth {
   //   curve.setPrivateKey(Buffer.from(privateKey, 'hex'))
   //   return crypto.
   // }
-  recover(state_hash, sign): string {
-    return this._web3.eth.accounts.recover(state_hash, sign);
+  
+  recover(stateHash, peerSign): string {
+    return this._recover(stateHash, peerSign);
   }
+
   getBlockNumber(): Promise<any> {
     return this._web3.eth.getBlockNumber();
   }
+  
   randomHash() {
     return crypto.randomBytes(16).toString("hex");
   }
