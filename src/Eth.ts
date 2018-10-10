@@ -74,7 +74,7 @@ export class Eth {
   async initAccount() {
     const { privateKey } = this._params;
     if (!privateKey) {
-      console.error(`Bankroller account PRIVATE_KEY required!`);
+      console.error(`Bankroller ACCOUNT_PRIVATE_KEY required!`);
       console.info(`set ENV variable privateKey`);
 
       if (process.env.DC_NETWORK === "ropsten") {
