@@ -1,11 +1,11 @@
-import BN from "bn.js";
-import Web3 from "web3";
-import crypto from "crypto";
-import { config, ContractInfo } from "dc-configs";
-import fetch from "node-fetch";
-import { sign as signHash } from "eth-lib/lib/account.js";
-import * as Utils from "./utils";
-import Contract from "web3/eth/contract";
+import BN from 'bn.js';
+import Web3 from 'web3';
+import crypto from 'crypto';
+import { config, ContractInfo } from 'dc-configs';
+import fetch from 'node-fetch';
+import { sign, recover } from 'eth-lib/lib/account.js';
+import * as Utils from './utils';
+import Contract from 'web3/eth/contract';
 
 interface Balance {
   balance?: number;
@@ -20,16 +20,16 @@ interface Cache {
 }
 
 export interface GasParams {
-  //_config.network
+  // _config.network
   price: number;
   limit: number;
 }
 
 export interface EthParams {
   privateKey: string;
-  httpProviderUrl: string; //_config.network.rpc_url
-  ERC20ContractInfo: ContractInfo; //_config.network.contracts.erc20
-  faucetServerUrl: string; //_config.faucet.get_acc_url
+  httpProviderUrl: string; // _config.network.rpc_url
+  ERC20ContractInfo: ContractInfo; // _config.network.contracts.erc20
+  faucetServerUrl: string; // _config.faucet.get_acc_url
   gasParams: GasParams;
 }
 
@@ -37,6 +37,8 @@ export class Eth {
   private _web3: Web3;
   private _getAccountPromise: Promise<string>;
   private _cache: Cache;
+  private _sign: any;
+  private _recover: any;
   private _ERC20Contract: any;
   private _payChannelContract: any;
   private _account: any;
@@ -44,6 +46,8 @@ export class Eth {
   private _params: EthParams;
   constructor(params: EthParams) {
     this._params = params;
+    this._sign = sign;
+    this._recover = recover;
     this._web3 = new Web3(
       new Web3.providers.HttpProvider(params.httpProviderUrl)
     );
@@ -73,13 +77,13 @@ export class Eth {
       console.error(`Bankroller account PRIVATE_KEY required!`);
       console.info(`set ENV variable privateKey`);
 
-      if (process.env.DC_NETWORK === "ropsten") {
+      if (process.env.DC_NETWORK === 'ropsten') {
         console.info(`You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
           or use this random ${
             this._web3.eth.accounts.create().privateKey
           } , but send Ropsten ETH and BETs to it before using
         `);
-      } else if (process.env.DC_NETWORK === "sdk") {
+      } else if (process.env.DC_NETWORK === 'sdk') {
         console.info(
           `For local SDK env you can use this privkey: 0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5`
         );
@@ -103,13 +107,14 @@ export class Eth {
   signHash(rawHash) {
     const hash = Utils.add0x(rawHash);
     if (!this._web3.utils.isHex(hash)) {
-      Utils.debugLog(hash + " is not correct hex");
+      Utils.debugLog(hash + ' is not correct hex');
       Utils.debugLog(
-        "Use DCLib.Utils.makeSeed or Utils.soliditySHA3(your_args) to create valid hash"
+        'Use DCLib.Utils.makeSeed or Utils.soliditySHA3(your_args) to create valid hash'
       );
     }
-    return signHash(hash, Utils.add0x(this._account.privateKey));
+    return this._sign(hash, Utils.add0x(this._account.privateKey));
   }
+
   // signHash2(rawHash) {
   //   const hash = Utils.add0x(rawHash);
   //   const privateKey = Utils.add0x(this._account.privateKey)
@@ -117,14 +122,17 @@ export class Eth {
   //   curve.setPrivateKey(Buffer.from(privateKey, 'hex'))
   //   return crypto.
   // }
-  recover(state_hash, sign): string {
-    return this._web3.eth.accounts.recover(state_hash, sign);
+
+  recover(stateHash, peerSign): string {
+    return this._recover(stateHash, peerSign);
   }
+
   getBlockNumber(): Promise<any> {
     return this._web3.eth.getBlockNumber();
   }
+
   randomHash() {
-    return crypto.randomBytes(16).toString("hex");
+    return crypto.randomBytes(16).toString('hex');
   }
 
   numFromHash(randomHash, min = 0, max = 100) {
@@ -143,28 +151,28 @@ export class Eth {
     return +divRes.mod + min;
   }
 
-  sigRecover(raw_msg, signed_msg) {
-    raw_msg = Utils.remove0x(raw_msg);
-    return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
-  }
+  // sigRecover(raw_msg, signed_msg) {
+  //   raw_msg = Utils.remove0x(raw_msg);
+  //   return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
+  // }
 
-  sigHashRecover(raw_msg, signed_msg) {
-    return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
-  }
+  // sigHashRecover(raw_msg, signed_msg) {
+  //   return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
+  // }
 
-  checkSig(raw_msg, signed_msg, need_address) {
-    raw_msg = Utils.remove0x(raw_msg);
-    return (
-      need_address.toLowerCase() ===
-      this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
-    );
-  }
-  checkHashSig(raw_msg, signed_msg, need_address) {
-    return (
-      need_address.toLowerCase() ===
-      this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
-    );
-  }
+  // checkSig(raw_msg, signed_msg, need_address) {
+  //   raw_msg = Utils.remove0x(raw_msg);
+  //   return (
+  //     need_address.toLowerCase() ===
+  //     this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
+  //   );
+  // }
+  // checkHashSig(raw_msg, signed_msg, need_address) {
+  //   return (
+  //     need_address.toLowerCase() ===
+  //     this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
+  //   );
+  // }
 
   async getAccountFromServer(): Promise<string> {
     if (this._getAccountPromise) {
@@ -178,7 +186,7 @@ export class Eth {
 
     const requestResult = await this._getAccountPromise;
     this._store.account_from_server = JSON.parse(requestResult);
-    Utils.debugLog(["Server account data: ", this._store.account_from_server]);
+    Utils.debugLog(['Server account data: ', this._store.account_from_server]);
     return this._store.account_from_server.privateKey;
   }
   allowance(
@@ -187,6 +195,7 @@ export class Eth {
   ): Promise<any> {
     return this._ERC20Contract.methods.allowance(address, spender).call();
   }
+
   async ERC20ApproveSafe(spender: string, amount: number) {
     let allowance = await this.allowance(spender);
     if (0 < allowance && allowance < amount) {
@@ -198,7 +207,7 @@ export class Eth {
   }
   async ERC20Approve(spender: string, amount: number) {
     const receipt = await this._ERC20Contract.methods
-      .approve(spender, amount)
+      .approve(spender, this._web3.utils.toWei(amount.toString()))
       .send({
         from: this._account.address,
         gasPrice: this._params.gasParams.price,
@@ -206,8 +215,8 @@ export class Eth {
       });
 
     if (
-      typeof receipt === "undefined" ||
-      !["0x01", "0x1", true].includes(receipt.status)
+      typeof receipt === 'undefined' ||
+      !['0x01', '0x1', true].includes(receipt.status)
     ) {
       throw new Error(receipt);
     }
@@ -222,9 +231,9 @@ export class Eth {
   }
 
   async getEthBalance(address): Promise<Balance> {
-    if (!address) throw new Error("Empty address in ETH balance request");
+    if (!address) throw new Error('Empty address in ETH balance request');
     const weiBalance = await this._web3.eth.getBalance(address);
-    const bnBalance: any = this._web3.utils.fromWei(weiBalance, "ether");
+    const bnBalance: any = this._web3.utils.fromWei(weiBalance, 'ether');
     return {
       balance: Number(bnBalance),
       updated: Date.now()
@@ -232,7 +241,7 @@ export class Eth {
   }
 
   async getBetBalance(address): Promise<Balance> {
-    if (!address) throw new Error("Empty address in BET balance request");
+    if (!address) throw new Error('Empty address in BET balance request');
     const decBalance = await this._ERC20Contract.methods
       .balanceOf(address)
       .call();

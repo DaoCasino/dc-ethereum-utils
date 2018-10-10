@@ -1,25 +1,25 @@
-import web3_utils from "web3-utils";
-import fetch from "node-fetch";
-import debug from "debug";
+import web3_utils from 'web3-utils';
+import fetch from 'node-fetch';
+import debug from 'debug';
 
 const web3_sha3 = web3_utils.soliditySha3;
-const ZERO_X = "0x";
+const ZERO_X = '0x';
 
-export const debugLog = function(data, loglevel="light", enable = true) {
-  let log = debug("");
+export const debugLog = function(data, loglevel = 'light', enable = true) {
+  let log = debug('');
 
-  if (loglevel === "hight") log.enabled = true;
+  if (loglevel === 'hight') log.enabled = true;
 
-  loglevel === "light" && !enable
+  loglevel === 'light' && !enable
     ? (log.enabled = false)
     : (log.enabled = true);
 
-  if (loglevel === "error") {
+  if (loglevel === 'error') {
     log = debug(loglevel);
     log.enabled = true;
   }
 
-  if (loglevel === "none") log.enabled = false;
+  if (loglevel === 'none') log.enabled = false;
 
   if (Array.isArray(data)) return log(...data);
 
@@ -40,24 +40,23 @@ export const dec2bet = function(val, r = 2) {
   return web3_utils.fromWei(numToHex(val)) * 1;
 };
 
-export const bet2dec = function(val) {
-  let b = web3_utils.toWei(val + "");
-  // let b = '' + (val * 100000000)
-  if (b.indexOf(".") > -1) {
-    b = b.split(".")[0] * 1;
+export const bet2dec = (value: number) => {
+  let b = web3_utils.toWei(value.toString());
+  if (b.indexOf('.') > -1) {
+    b = b.split('.')[0] * 1;
   }
-  return b * 1;
+  return b;
 };
 
 export const clearcode = function(string) {
   return string
     .toString()
-    .split("\t")
-    .join("")
-    .split("\n")
-    .join("")
-    .split("  ")
-    .join(" ");
+    .split('\t')
+    .join('')
+    .split('\n')
+    .join('')
+    .split('  ')
+    .join(' ');
 };
 export const checksum = function(string) {
   return sha3(clearcode(string));
@@ -77,7 +76,7 @@ export const hexToNum = str => {
 };
 
 export const hexToString = hex => {
-  let str = "";
+  let str = '';
   for (let i = 0; i < hex.length; i += 2) {
     str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
   }
@@ -85,8 +84,8 @@ export const hexToString = hex => {
 };
 
 export const pad = (num, size) => {
-  let s = num + "";
-  while (s.length < size) s = "0" + s;
+  let s = num + '';
+  while (s.length < size) s = '0' + s;
   return s;
 };
 
@@ -102,11 +101,11 @@ export const reverseForIn = (obj, f) => {
 
 export const buf2hex = buffer => {
   return Array.prototype.map
-    .call(new Uint8Array(buffer), x => ("00" + x.toString(16)).slice(-2))
-    .join("");
+    .call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2))
+    .join('');
 };
 export const buf2bytes32 = buffer => {
-  return "0x" + buf2hex(buffer);
+  return '0x' + buf2hex(buffer);
 };
 
 export const remove0x = str => {
@@ -120,8 +119,8 @@ export const remove0x = str => {
 export const add0x = str => (str.startsWith(ZERO_X) ? str : `0x${str}`);
 
 export const makeSeed = () => {
-  var str = "0x";
-  var possible = "abcdef0123456789";
+  var str = '0x';
+  var possible = 'abcdef0123456789';
 
   for (var i = 0; i < 64; i++) {
     if (new Date().getTime() % 2 === 0) {
