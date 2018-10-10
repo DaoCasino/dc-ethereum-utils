@@ -12,10 +12,9 @@
   "author": "",
   "license": "GPL-3.0",
   "dependencies": {
-    "@types/web3":"^1.0.6",
+    "@types/web3": "^1.0.6",
     "dc-configs": "^1.0.0",
     "dc-logging": "^1.0.0",
-    "web3":"1.0.0-beta.36"
-
+    "web3": "1.0.0-beta.36"
   }
 }
