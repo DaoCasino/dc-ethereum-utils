@@ -69,7 +69,6 @@ export const buf2bytes32 = buffer => {
 
 export const remove0x = str => {
   if (str.length > 2 && str.substr(0, 2) === ZERO_X) {
-    // debugLog(['0x prefix removed from  ', str.substr(0, 8) + '...'], _config.loglevel)
     str = str.substr(2);
   }
   return str;
