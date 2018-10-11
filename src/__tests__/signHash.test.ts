@@ -7,13 +7,11 @@ const {
   gasLimit: limit,
   web3HttpProviderUrl: httpProviderUrl,
   contracts,
-  privateKey,
-  faucetServerUrl
+  privateKey
 } = config;
 const eth = new Eth({
   httpProviderUrl,
   ERC20ContractInfo: contracts.ERC20,
-  faucetServerUrl,
   gasParams: { price, limit },
   privateKey
 });
