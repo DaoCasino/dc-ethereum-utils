@@ -1,42 +1,11 @@
 import web3_utils from 'web3-utils';
-import fetch from 'node-fetch';
-import debug from 'debug';
 
-const web3_sha3 = web3_utils.soliditySha3;
+const web3Sha3 = web3_utils.soliditySha3;
 const ZERO_X = '0x';
 
-export const debugLog = function(data, loglevel = 'light', enable = true) {
-  let log = debug('');
+export const sha3 = web3Sha3;
 
-  if (loglevel === 'hight') log.enabled = true;
-
-  loglevel === 'light' && !enable
-    ? (log.enabled = false)
-    : (log.enabled = true);
-
-  if (loglevel === 'error') {
-    log = debug(loglevel);
-    log.enabled = true;
-  }
-
-  if (loglevel === 'none') log.enabled = false;
-
-  if (Array.isArray(data)) return log(...data);
-
-  return log(data);
-};
-export const localGameContract = async url => {
-  try {
-    const res = await fetch(url);
-    return await res.json();
-  } catch (err) {
-    throw new Error(err);
-  }
-};
-
-export const sha3 = web3_sha3;
-
-export const dec2bet = function(val, r = 2) {
+export const dec2bet = (val, r = 2) => {
   return web3_utils.fromWei(numToHex(val)) * 1;
 };
 
@@ -48,7 +17,7 @@ export const bet2dec = (value: number) => {
   return b;
 };
 
-export const clearcode = function(string) {
+export const clearcode = string => {
   return string
     .toString()
     .split('\t')
@@ -58,7 +27,7 @@ export const clearcode = function(string) {
     .split('  ')
     .join(' ');
 };
-export const checksum = function(string) {
+export const checksum = string => {
   return sha3(clearcode(string));
 };
 
@@ -89,16 +58,6 @@ export const pad = (num, size) => {
   return s;
 };
 
-export const reverseForIn = (obj, f) => {
-  let arr = [];
-  for (let key in obj) {
-    arr.push(key);
-  }
-  for (let i = arr.length - 1; i >= 0; i--) {
-    f.call(obj, arr[i]);
-  }
-};
-
 export const buf2hex = buffer => {
   return Array.prototype.map
     .call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2))
@@ -119,10 +78,10 @@ export const remove0x = str => {
 export const add0x = str => (str.startsWith(ZERO_X) ? str : `0x${str}`);
 
 export const makeSeed = () => {
-  var str = '0x';
-  var possible = 'abcdef0123456789';
+  let str = '0x';
+  const possible = 'abcdef0123456789';
 
-  for (var i = 0; i < 64; i++) {
+  for (let i = 0; i < 64; i++) {
     if (new Date().getTime() % 2 === 0) {
       str += possible.charAt(Math.floor(Math.random() * possible.length));
     } else {
@@ -130,11 +89,11 @@ export const makeSeed = () => {
     }
   }
 
-  return web3_sha3(numToHex(str));
+  return web3Sha3(numToHex(str));
 };
 
-export const concatUint8Array = function(buffer1, buffer2) {
-  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+export const concatUint8Array = (buffer1, buffer2) => {
+  const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
   tmp.set(new Uint8Array(buffer1), 0);
   tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
   return tmp.buffer;

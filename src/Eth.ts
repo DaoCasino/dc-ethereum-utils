@@ -1,12 +1,12 @@
 import BN from 'bn.js';
 import Web3 from 'web3';
 import crypto from 'crypto';
-import { config, ContractInfo } from 'dc-configs';
-import fetch from 'node-fetch';
+import { ContractInfo } from 'dc-configs';
 import { sign, recover } from 'eth-lib/lib/account.js';
 import * as Utils from './utils';
-import Contract from 'web3/eth/contract';
+import { Logger } from 'dc-logging';
 
+const logger = new Logger('Eth');
 interface Balance {
   balance?: number;
   updated?: number;
@@ -59,11 +59,6 @@ export class Eth {
       params.ERC20ContractInfo.abi,
       params.ERC20ContractInfo.address
     );
-
-    // setTimeout(async ()=>{
-    //   this._cache.lastBalances = await this.getBalances()
-    //   console.log('Acc balance '+ this.acc.address, this._cache.lastBalances );
-    // }, 5000)
   }
   account() {
     return this._account;
@@ -74,21 +69,21 @@ export class Eth {
   async initAccount() {
     const { privateKey } = this._params;
     if (!privateKey) {
-      console.error(`Bankroller account PRIVATE_KEY required!`);
-      console.info(`set ENV variable privateKey`);
+      logger.error(`Bankroller account PRIVATE_KEY required!`);
+      logger.info(`set ENV variable privateKey`);
 
       if (process.env.DC_NETWORK === 'ropsten') {
-        console.info(`You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
+        logger.info(`You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
           or use this random ${
             this._web3.eth.accounts.create().privateKey
           } , but send Ropsten ETH and BETs to it before using
         `);
       } else if (process.env.DC_NETWORK === 'sdk') {
-        console.info(
+        logger.info(
           `For local SDK env you can use this privkey: 0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5`
         );
       } else {
-        console.info(
+        logger.info(
           `You can use this privkey: ${
             this._web3.eth.accounts.create().privateKey
           }, but be sure that account have ETH and BETs `
@@ -103,12 +98,11 @@ export class Eth {
     return true;
   }
 
-  // TODO WTF???
   signHash(rawHash) {
     const hash = Utils.add0x(rawHash);
     if (!this._web3.utils.isHex(hash)) {
-      Utils.debugLog(hash + ' is not correct hex');
-      Utils.debugLog(
+      logger.debug(hash + ' is not correct hex');
+      logger.debug(
         'Use DCLib.Utils.makeSeed or Utils.soliditySHA3(your_args) to create valid hash'
       );
     }
@@ -137,9 +131,7 @@ export class Eth {
 
   numFromHash(randomHash, min = 0, max = 100) {
     if (min > max) {
-      let c = min;
-      min = max;
-      max = c;
+      [min, max] = [max, min];
     }
     if (min === max) return max;
     max += 1;
@@ -174,21 +166,6 @@ export class Eth {
   //   );
   // }
 
-  async getAccountFromServer(): Promise<string> {
-    if (this._getAccountPromise) {
-      await this._getAccountPromise;
-    }
-    if (this._store.account_from_server) return this._store.account_from_server;
-
-    this._getAccountPromise = fetch(this._params.faucetServerUrl, {}).then(
-      res => res.json()
-    );
-
-    const requestResult = await this._getAccountPromise;
-    this._store.account_from_server = JSON.parse(requestResult);
-    Utils.debugLog(['Server account data: ', this._store.account_from_server]);
-    return this._store.account_from_server.privateKey;
-  }
   allowance(
     spender: string,
     address: string = this._account.address
@@ -197,7 +174,7 @@ export class Eth {
   }
 
   async ERC20ApproveSafe(spender: string, amount: number) {
-    let allowance = await this.allowance(spender);
+    const allowance = await this.allowance(spender);
     if (0 < allowance && allowance < amount) {
       await this.ERC20Approve(spender, 0);
     }
