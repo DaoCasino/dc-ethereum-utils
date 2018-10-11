@@ -29,7 +29,6 @@ export interface EthParams {
   privateKey: string;
   httpProviderUrl: string; // _config.network.rpc_url
   ERC20ContractInfo: ContractInfo; // _config.network.contracts.erc20
-  faucetServerUrl: string; // _config.faucet.get_acc_url
   gasParams: GasParams;
 }
 
