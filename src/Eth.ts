@@ -141,19 +141,20 @@ export class Eth {
         gasPrice : config.gasPrice
       })
 
-      const repeat = async secs => {
-        await Utils.sleep(secs)
-        this.sendTransaction(contract, methodName, args).then(resolve)
+      const repeat = secs => {
+        setTimeout(()=>{
+          this.sendTransaction(contract, methodName, args).then(resolve)
+        }, secs*1000)
       }
 
       // Repeat if error
       receipt.catch(err => {
         logger.error('_REPEAT sendTransaction: '+methodName, err)
-        repeat(1)
+        return repeat(1)
       })
       receipt.on('error', err => {
         logger.error('REPEAT sendTransaction: '+methodName, err)
-        repeat(2)
+        return repeat(2)
       })
 
       receipt.on('transactionHash', transactionHash => logger.debug('TX hash', transactionHash))
