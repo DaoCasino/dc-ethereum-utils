@@ -11,7 +11,6 @@ import BN                from 'bn.js'
 import Web3              from 'web3'
 import crypto            from 'crypto'
 import { config }        from 'dc-configs'
-import axios             from 'axios'
 import { Logger }        from 'dc-logging'
 import { sign, recover } from 'eth-lib/lib/account.js'
 import * as Utils        from './utils'
@@ -135,13 +134,28 @@ export class Eth {
 
   sendTransaction(contract: any, methodName: string, args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
+
       const receipt = contract.methods[methodName](...args).send({
-        from: this._account.address,
-        gas: config.gasLimit,
-        gasPrice: config.gasPrice
+        from     : this._account.address,
+        gas      : config.gasLimit,
+        gasPrice : config.gasPrice
       })
 
-      receipt.on('error', error => reject(error))
+      const repeat = async secs => {
+        await Utils.sleep(secs)
+        this.sendTransaction(contract, methodName, args).then(resolve)
+      }
+
+      // Repeat if error
+      receipt.catch(err => {
+        logger.error('_REPEAT sendTransaction: '+methodName, err)
+        repeat(1)
+      })
+      receipt.on('error', err => {
+        logger.error('REPEAT sendTransaction: '+methodName, err)
+        repeat(2)
+      })
+
       receipt.on('transactionHash', transactionHash => logger.debug('TX hash', transactionHash))
       receipt.on('confirmation', confirmationCount => {
         if (confirmationCount <= config.waitForConfirmations) {
@@ -152,11 +166,12 @@ export class Eth {
           resolve({status: 'success'})
         }
       })
+
     })
   }
 
   async ERC20ApproveSafe(spender: string, amount: number) {
-    const allowance = await this.allowance(spender)
+    const allowance    = await this.allowance(spender)
     const ammountToWei = this._web3.utils.toWei(amount.toString())
     
     if (0 < allowance && allowance < ammountToWei) {

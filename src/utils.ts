@@ -97,3 +97,8 @@ export const concatUint8Array = (buffer1, buffer2) => {
   tmp.set(new Uint8Array(buffer2), buffer1.byteLength)
   return tmp.buffer
 }
+
+export const sleep = sec => {
+  return new Promise(resolve=>{ setTimeout(resolve, sec*1000)})
+}
+
