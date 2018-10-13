@@ -1,6 +1,6 @@
-import { ContractInfo } from 'dc-configs'
+import { ContractInfo } from "dc-configs"
 
-type SolidityType = 'bytes32' | 'address' | 'uint' | 'bytes' | 'bool'
+type SolidityType = "bytes32" | "address" | "uint" | "bytes" | "bool"
 
 export interface SolidityTypeValue {
   t: SolidityType
@@ -27,8 +27,8 @@ export interface GasParams {
 }
 
 export interface EthParams {
-  privateKey        : string
-  httpProviderUrl   : string
-  ERC20ContractInfo : ContractInfo
-  gasParams         : GasParams
+  privateKey: string
+  httpProviderUrl: string
+  ERC20ContractInfo: ContractInfo
+  gasParams: GasParams
 }
