@@ -13,6 +13,7 @@ import { config } from "dc-configs"
 import { Logger } from "dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
 import * as Utils from "./utils"
+import Contract from "web3/eth/contract"
 
 const logger = new Logger("EthInstance")
 
@@ -21,7 +22,7 @@ export class Eth {
   private _cache: Cache
   private _sign: any
   private _recover: any
-  private _ERC20Contract: any
+  private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
 
@@ -45,7 +46,7 @@ export class Eth {
     return this._account
   }
 
-  initContract(abi: any, address: string): any {
+  initContract(abi: any, address: string): Contract {
     return new this._web3.eth.Contract(abi, address)
   }
 
@@ -132,15 +133,15 @@ export class Eth {
   }
 
   sendTransaction(
-    contract: any,
+    contract: Contract,
     methodName: string,
     args: any[]
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const receipt = contract.methods[methodName](...args).send({
         from: this._account.address,
-        gas: config.gasLimit,
-        gasPrice: config.gasPrice
+        gas: this._params.gasParams.limit,
+        gasPrice: this._params.gasParams.price
       })
 
       const repeat = secs => {
@@ -164,9 +165,10 @@ export class Eth {
       )
       receipt.on("confirmation", confirmationCount => {
         if (confirmationCount <= config.waitForConfirmations) {
-          logger.debug(methodName, "confirmationCount: ", confirmationCount)
+          logger.debug(`${methodName} confirmationCount: ${confirmationCount}`)
         } else {
-          receipt.off("confirmation")
+          const rcpt = receipt as any
+          rcpt.off("confirmation")
           logger.debug("Transaction success")
           resolve({ status: "success" })
         }
