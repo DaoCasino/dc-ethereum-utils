@@ -1,7 +1,6 @@
 import {
   Cache,
   Balance,
-  GasParams,
   EthParams,
   LastBalances,
   SolidityTypeValue,
@@ -11,7 +10,6 @@ import BN                from 'bn.js'
 import Web3              from 'web3'
 import crypto            from 'crypto'
 import { config }        from 'dc-configs'
-import axios             from 'axios'
 import { Logger }        from 'dc-logging'
 import { sign, recover } from 'eth-lib/lib/account.js'
 import * as Utils        from './utils'
@@ -25,7 +23,6 @@ export class Eth {
   private _recover       : any
   private _ERC20Contract : any
   private _account       : any
-  private _store         : any
   private _params        : EthParams
 
   constructor(params: EthParams) {
@@ -33,9 +30,7 @@ export class Eth {
     this._sign    = sign
     this._recover = recover
     this._web3    = new Web3(new Web3.providers.HttpProvider(config.web3HttpProviderUrl))
-
-    this._cache = { lastBalances: { bet: {}, eth: {} } }
-    this._store = {}
+    this._cache   = { lastBalances: { bet: {}, eth: {} } }
 
     // Init ERC20 contract
     this._ERC20Contract = this.initContract(
@@ -44,15 +39,18 @@ export class Eth {
     )
   }
   
-  getAccount() {
+  getAccount(): any {
     return this._account
   }
   
-  initContract(abi: any, address: string) {
+  initContract(
+    abi: any,
+    address: string
+  ): any {
     return new this._web3.eth.Contract(abi, address)
   }
   
-  async initAccount() {
+  initAccount(): boolean {
     const { privateKey } = this._params
     if (!privateKey) {
       logger.error(`Bankroller ACCOUNT_PRIVATE_KEY required!`)
@@ -89,14 +87,19 @@ export class Eth {
   }
 
 
-  signHash(argsToSign: SolidityTypeValue[]): string {
+  signHash(
+    argsToSign: SolidityTypeValue[]
+  ): string {
     const hash = Utils.sha3(...argsToSign)
     const privateKey = Utils.add0x(this._account.privateKey)
     
     return this._sign(hash, privateKey)
   }
 
-  recover(argsToHash: SolidityTypeValue[], peerSign: string): string {
+  recover(
+    argsToHash: SolidityTypeValue[],
+    peerSign: string
+  ): string {
     const hash = Utils.sha3(...argsToHash)
     return this._recover(hash, peerSign)
   }
@@ -109,7 +112,11 @@ export class Eth {
     return crypto.randomBytes(16).toString('hex')
   }
 
-  numFromHash(randomHash: any, min: number = 0, max: number = 100): number {
+  numFromHash(
+    randomHash: any,
+    min: number = 0,
+    max: number = 100
+  ): number {
     if (min > max) {
       const box = min
       min = max
@@ -133,15 +140,35 @@ export class Eth {
     return this._ERC20Contract.methods.allowance(address, spender).call()
   }
 
-  sendTransaction(contract: any, methodName: string, args: any[]): Promise<any> {
+  sendTransaction(
+    contract: any,
+    methodName: string,
+    args: any[]
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
+
       const receipt = contract.methods[methodName](...args).send({
-        from: this._account.address,
-        gas: config.gasLimit,
-        gasPrice: config.gasPrice
+        from     : this._account.address,
+        gas      : config.gasLimit,
+        gasPrice : config.gasPrice
       })
 
-      receipt.on('error', error => reject(error))
+      const repeat = secs => {
+        setTimeout(()=>{
+          this.sendTransaction(contract, methodName, args).then(resolve)
+        }, secs*1000)
+      }
+
+      // Repeat if error
+      receipt.catch(err => {
+        logger.error('_REPEAT sendTransaction: '+methodName, err)
+        return repeat(1)
+      })
+      receipt.on('error', err => {
+        logger.error('REPEAT sendTransaction: '+methodName, err)
+        // return repeat(2)
+      })
+
       receipt.on('transactionHash', transactionHash => logger.debug('TX hash', transactionHash))
       receipt.on('confirmation', confirmationCount => {
         if (confirmationCount <= config.waitForConfirmations) {
@@ -152,26 +179,38 @@ export class Eth {
           resolve({status: 'success'})
         }
       })
+
     })
   }
 
-  async ERC20ApproveSafe(spender: string, amount: number) {
-    const allowance = await this.allowance(spender)
-    const ammountToWei = this._web3.utils.toWei(amount.toString())
-    
-    if (0 < allowance && allowance < ammountToWei) {
-      await this.sendTransaction(this._ERC20Contract, 'approve', [spender, 0])
+  async ERC20ApproveSafe(
+    spender: string,
+    amount: number
+  ): Promise<number> {
+    const allowance: number = await this.allowance(spender)
+
+    if (0 < allowance && allowance < amount) {
+      await this.sendTransaction(
+        this._ERC20Contract,
+        'approve',
+        [spender, 0]
+      )
     }
     
-    if (allowance < ammountToWei) {
-      await this.sendTransaction(this._ERC20Contract, 'approve', [spender, ammountToWei])
+    if (allowance < amount) {
+      await this.sendTransaction(
+        this._ERC20Contract,
+        'approve',
+        [spender, this._web3.utils.toWei(amount.toString())]
+      )
     }
+
+    return allowance
   }
 
   async getBalances(
     address: string = this._account.address
   ): Promise<LastBalances> {
-
     const [ bet, eth ] = await Promise.all([
       this.getBetBalance(address),
       this.getEthBalance(address)
@@ -183,7 +222,9 @@ export class Eth {
     return this._cache.lastBalances
   }
 
-  async getEthBalance(address: string): Promise<Balance> {
+  async getEthBalance(
+    address: string
+  ): Promise<Balance> {
     if (!address) {
       throw new Error('Empty address in ETH balance request')
     }
@@ -197,7 +238,9 @@ export class Eth {
     }
   }
 
-  async getBetBalance(address: string): Promise<Balance> {
+  async getBetBalance(
+    address: string
+  ): Promise<Balance> {
     if (!address) {
       throw new Error('Empty address in BET balance request')
     }

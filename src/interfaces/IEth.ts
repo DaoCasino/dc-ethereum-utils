@@ -1,10 +1,16 @@
 import { ContractInfo } from "dc-configs"
 
-type SolidityType = "bytes32" | "address" | "uint" | "bytes" | "bool"
+type SolidityType =
+  | "bytes32"
+  | "address"
+  | "uint"
+  | "uint256"
+  | "bytes"
+  | "bool"
 
 export interface SolidityTypeValue {
   t: SolidityType
-  v: string | number[]
+  v: string | number[] | boolean
 }
 
 export interface Balance {
