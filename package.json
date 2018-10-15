@@ -17,6 +17,7 @@
     "dc-configs": "^1.0.0",
     "dc-logging": "^1.0.0",
     "eth-lib": "^0.2.8",
+    "node-rsa": "^1.0.1",
     "web3": "1.0.0-beta.36",
     "web3-utils": "^1.0.0-beta.36"
   },
