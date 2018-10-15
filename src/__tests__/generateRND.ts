@@ -18,6 +18,16 @@ const eth = new Eth({
 })
 
 const test1 = () => {
+  eth.initAccount()
   const seed = Utils.makeSeed()
-  const hash = eth.signHash(seed)
+  const hash = eth.signHash([
+    {t: 'bytes32', v: seed}
+  ])
+
+  const rnd = eth.generateRnd([[0, 10], [0, 10], [0, 10]], hash)
+
+  console.log(rnd)
 }
+
+test1()
+test1()
