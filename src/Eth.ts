@@ -1,227 +1,278 @@
-import BN from 'bn.js';
-import Web3 from 'web3';
-import crypto from 'crypto';
-import { ContractInfo } from 'dc-configs';
-import { sign, recover } from 'eth-lib/lib/account.js';
-import * as Utils from './utils';
-import { Logger } from 'dc-logging';
+import {
+  Cache,
+  Balance,
+  EthParams,
+  LastBalances,
+  SolidityTypeValue
+} from "./interfaces/IEth"
 
-const logger = new Logger('Eth');
-interface Balance {
-  balance?: number;
-  updated?: number;
-}
-interface LastBalances {
-  bet: Balance;
-  eth: Balance;
-}
-interface Cache {
-  lastBalances: LastBalances;
-}
+import BN from "bn.js"
+import Web3 from "web3"
+import crypto from "crypto"
+import { config } from "dc-configs"
+import { Logger } from "dc-logging"
+import { sign, recover } from "eth-lib/lib/account.js"
+import BigInteger from 'node-rsa/src/libs/jsbn'
 
-export interface GasParams {
-  // _config.network
-  price: number;
-  limit: number;
-}
+import * as Utils from "./utils"
+import Contract from "web3/eth/contract"
 
-export interface EthParams {
-  privateKey: string;
-  httpProviderUrl: string; // _config.network.rpc_url
-  ERC20ContractInfo: ContractInfo; // _config.network.contracts.erc20
-  gasParams: GasParams;
-}
+const logger = new Logger("EthInstance")
 
 export class Eth {
-  private _web3: Web3;
-  private _getAccountPromise: Promise<string>;
-  private _cache: Cache;
-  private _sign: any;
-  private _recover: any;
-  private _ERC20Contract: any;
-  private _payChannelContract: any;
-  private _account: any;
-  private _store: any;
-  private _params: EthParams;
-  constructor(params: EthParams) {
-    this._params = params;
-    this._sign = sign;
-    this._recover = recover;
-    this._web3 = new Web3(
-      new Web3.providers.HttpProvider(params.httpProviderUrl)
-    );
+  private _web3: Web3
+  private _cache: Cache
+  private _sign: any
+  private _recover: any
+  private _signatureForRandom: string
+  private _ERC20Contract: Contract
+  private _account: any
+  private _params: EthParams
 
-    this._cache = { lastBalances: { bet: {}, eth: {} } };
-    this._store = {};
+  constructor(params: EthParams) {
+    this._params = params
+    this._sign = sign
+    this._recover = recover
+    this._web3 = new Web3(
+      new Web3.providers.HttpProvider(config.web3HttpProviderUrl)
+    )
+    this._cache = { lastBalances: { bet: {}, eth: {} } }
+
     // Init ERC20 contract
-    this._ERC20Contract = new this._web3.eth.Contract(
+    this._ERC20Contract = this.initContract(
       params.ERC20ContractInfo.abi,
       params.ERC20ContractInfo.address
-    );
+    )
   }
-  account() {
-    return this._account;
-  }
-  getContract(abi: any, address: string) {
-    return new this._web3.eth.Contract(abi, address);
-  }
-  async initAccount() {
-    const { privateKey } = this._params;
-    if (!privateKey) {
-      logger.error(`Bankroller account PRIVATE_KEY required!`);
-      logger.info(`set ENV variable privateKey`);
 
-      if (process.env.DC_NETWORK === 'ropsten') {
-        logger.info(`You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
-          or use this random ${
-            this._web3.eth.accounts.create().privateKey
-          } , but send Ropsten ETH and BETs to it before using
-        `);
-      } else if (process.env.DC_NETWORK === 'sdk') {
-        logger.info(
-          `For local SDK env you can use this privkey: 0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5`
-        );
-      } else {
-        logger.info(
-          `You can use this privkey: ${
-            this._web3.eth.accounts.create().privateKey
-          }, but be sure that account have ETH and BETs `
-        );
+  getAccount(): any {
+    return this._account
+  }
+
+  initContract(abi: any, address: string): Contract {
+    return new this._web3.eth.Contract(abi, address)
+  }
+
+  initAccount(): boolean {
+    const { privateKey } = this._params
+    if (!privateKey) {
+      logger.error(`Bankroller ACCOUNT_PRIVATE_KEY required!`)
+      logger.info(`set ENV variable ACCOUNT_PRIVATE_KEY`)
+
+      switch (process.env.DC_NETWORK) {
+        case "ropsten":
+          logger.info(`
+            You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
+            or use this random ${this._web3.eth.accounts.create().privateKey},
+            but send Ropsten ETH and BETs to it before using
+          `)
+          break
+        case "sdk":
+          logger.info(`
+            For local SDK env you can use this privkey:
+            0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5
+          `)
+          break
+        default:
+          logger.info(`
+            You can use this privkey: ${
+              this._web3.eth.accounts.create().privateKey
+            },
+            but be sure that account have ETH and BETs
+          `)
+          break
       }
 
-      process.exit();
+      return false
     }
 
-    this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey);
-    this._web3.eth.accounts.wallet.add(privateKey);
-    return true;
+    this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
+    this._web3.eth.accounts.wallet.add(privateKey)
+    return true
   }
 
-  signHash(rawHash) {
-    const hash = Utils.add0x(rawHash);
-    if (!this._web3.utils.isHex(hash)) {
-      logger.debug(hash + ' is not correct hex');
-      logger.debug(
-        'Use DCLib.Utils.makeSeed or Utils.soliditySHA3(your_args) to create valid hash'
-      );
-    }
-    return this._sign(hash, Utils.add0x(this._account.privateKey));
+  signHash(argsToSign: SolidityTypeValue[]): string {
+    const hash = Utils.sha3(...argsToSign)
+    const privateKey = Utils.add0x(this._account.privateKey)
+
+    return this._sign(hash, privateKey)
   }
 
-  // signHash2(rawHash) {
-  //   const hash = Utils.add0x(rawHash);
-  //   const privateKey = Utils.add0x(this._account.privateKey)
-  //   const curve = crypto.createSign('secp256k1');
-  //   curve.setPrivateKey(Buffer.from(privateKey, 'hex'))
-  //   return crypto.
-  // }
-
-  recover(stateHash, peerSign): string {
-    return this._recover(stateHash, peerSign);
+  recover(argsToHash: SolidityTypeValue[], peerSign: string): string {
+    const hash = Utils.sha3(...argsToHash)
+    return this._recover(hash, peerSign)
   }
 
   getBlockNumber(): Promise<any> {
-    return this._web3.eth.getBlockNumber();
+    return this._web3.eth.getBlockNumber()
   }
 
   randomHash() {
-    return crypto.randomBytes(16).toString('hex');
+    return crypto.randomBytes(16).toString("hex")
   }
 
-  numFromHash(randomHash, min = 0, max = 100) {
+  numFromHash(randomHash: any, min: number = 0, max: number = 100): number {
     if (min > max) {
-      [min, max] = [max, min];
+      const box = min
+      min = max
+      max = box
     }
-    if (min === max) return max;
-    max += 1;
 
-    const hashBN = new BN(Utils.remove0x(randomHash), 16);
-    const divBN = new BN(max - min, 10);
-    const divRes = hashBN.mod(divBN);
+    if (min === max) return max
+    max += 1
 
-    return +divRes.mod + min;
+    const hashBN = new BN(Utils.remove0x(randomHash), 16)
+    const divBN = new BN(max - min, 10)
+    const divRes = hashBN.mod(divBN)
+
+    return Number(divRes.mod) + min
   }
-
-  // sigRecover(raw_msg, signed_msg) {
-  //   raw_msg = Utils.remove0x(raw_msg);
-  //   return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
-  // }
-
-  // sigHashRecover(raw_msg, signed_msg) {
-  //   return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
-  // }
-
-  // checkSig(raw_msg, signed_msg, need_address) {
-  //   raw_msg = Utils.remove0x(raw_msg);
-  //   return (
-  //     need_address.toLowerCase() ===
-  //     this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
-  //   );
-  // }
-  // checkHashSig(raw_msg, signed_msg, need_address) {
-  //   return (
-  //     need_address.toLowerCase() ===
-  //     this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
-  //   );
-  // }
 
   allowance(
     spender: string,
     address: string = this._account.address
   ): Promise<any> {
-    return this._ERC20Contract.methods.allowance(address, spender).call();
+    return this._ERC20Contract.methods.allowance(address, spender).call()
   }
 
-  async ERC20ApproveSafe(spender: string, amount: number) {
-    const allowance = await this.allowance(spender);
-    if (0 < allowance && allowance < amount) {
-      await this.ERC20Approve(spender, 0);
-    }
-    if (allowance < amount) {
-      await this.ERC20Approve(spender, amount);
-    }
+  generateRnd(ranges, firstSignature) {
+    const randomNumsArray = ranges.map(range => {
+      return range.reduce((prevRangeElement, nextRangeElement) => {
+        const rangeCalc = (nextRangeElement - prevRangeElement) + 1
+        const rangeInHex = rangeCalc.toString(16)
+        const _signature = this._signatureForRandom || Utils.add0x(firstSignature.toString('hex'))
+      
+        let randomInHex = Utils.sha3({ t: 'bytes', v: _signature })
+        this._signatureForRandom = this.signHash([{ t: 'bytes32', v: randomInHex}])
+
+        let randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
+  
+        const randomForCheck = (2 ** (256 - 1) / rangeCalc) * rangeCalc
+        const randomForCheckInBN = new BigInteger(randomForCheck.toString(16), 16)
+  
+        while (randomInBN.compareTo(randomForCheckInBN) > 0) {
+          randomInHex = Utils.sha3({ t: 'bytes32', v: randomInHex })
+          randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
+        }
+  
+        const rangeInBN = new BigInteger(rangeInHex, 16)
+        const minNumberToHex = prevRangeElement.toString(16)
+        const minNumberToBN = new BigInteger(minNumberToHex, 16)
+  
+        const calcRandom = (randomInBN.remainder(rangeInBN)).add(minNumberToBN)
+        const randomToInt = parseInt(Utils.add0x(calcRandom.toString(16)), 16)
+        logger.debug(`local random number: ${randomToInt}`)
+  
+        return randomToInt
+      })
+    })
+
+    delete this._signatureForRandom
+    return randomNumsArray
   }
-  async ERC20Approve(spender: string, amount: number) {
-    const receipt = await this._ERC20Contract.methods
-      .approve(spender, this._web3.utils.toWei(amount.toString()))
-      .send({
+
+  sendTransaction(
+    contract: Contract,
+    methodName: string,
+    args: any[]
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const receipt = contract.methods[methodName](...args).send({
         from: this._account.address,
-        gasPrice: this._params.gasParams.price,
-        gas: this._params.gasParams.limit
-      });
+        gas: this._params.gasParams.limit,
+        gasPrice: this._params.gasParams.price
+      })
 
-    if (
-      typeof receipt === 'undefined' ||
-      !['0x01', '0x1', true].includes(receipt.status)
-    ) {
-      throw new Error(receipt);
+      const repeat = secs => {
+        setTimeout(() => {
+          this.sendTransaction(contract, methodName, args).then(resolve)
+        }, secs * 1000)
+      }
+
+      // Repeat if error
+      receipt.catch(err => {
+        logger.error("_REPEAT sendTransaction: " + methodName, err)
+        return repeat(1)
+      })
+      receipt.on("error", err => {
+        logger.error("REPEAT sendTransaction: " + methodName, err)
+        // return repeat(2)
+      })
+
+      receipt.on("transactionHash", transactionHash =>
+        logger.debug("TX hash", transactionHash)
+      )
+      receipt.on("confirmation", confirmationCount => {
+        if (confirmationCount <= config.waitForConfirmations) {
+          logger.debug(`${methodName} confirmationCount: ${confirmationCount}`)
+        } else {
+          const rcpt = receipt as any
+          rcpt.off("confirmation")
+          logger.debug("Transaction success")
+          resolve({ status: "success" })
+        }
+      })
+    })
+  }
+
+  async ERC20ApproveSafe(spender: string, amount: number): Promise<number> {
+    const allowance: number = await this.allowance(spender)
+
+    if (0 < allowance && allowance < amount) {
+      await this.sendTransaction(this._ERC20Contract, "approve", [spender, 0])
     }
+
+    if (allowance < amount) {
+      await this.sendTransaction(this._ERC20Contract, "approve", [
+        spender,
+        this._web3.utils.toWei(amount.toString())
+      ])
+    }
+
+    return allowance
   }
 
   async getBalances(
     address: string = this._account.address
   ): Promise<LastBalances> {
-    this._cache.lastBalances.bet = await this.getBetBalance(address);
-    this._cache.lastBalances.eth = await this.getEthBalance(address);
-    return this._cache.lastBalances;
+    const [bet, eth] = await Promise.all([
+      this.getBetBalance(address),
+      this.getEthBalance(address)
+    ])
+
+    this._cache.lastBalances.bet = bet
+    this._cache.lastBalances.eth = eth
+
+    return this._cache.lastBalances
   }
 
-  async getEthBalance(address): Promise<Balance> {
-    if (!address) throw new Error('Empty address in ETH balance request');
-    const weiBalance = await this._web3.eth.getBalance(address);
-    const bnBalance: any = this._web3.utils.fromWei(weiBalance, 'ether');
+  async getEthBalance(address: string): Promise<Balance> {
+    if (!address) {
+      throw new Error("Empty address in ETH balance request")
+    }
+
+    const weiBalance: number = await this._web3.eth.getBalance(address)
+    const bnBalance: string | BN = this._web3.utils.fromWei(weiBalance, "ether")
+
     return {
       balance: Number(bnBalance),
       updated: Date.now()
-    };
+    }
   }
 
-  async getBetBalance(address): Promise<Balance> {
-    if (!address) throw new Error('Empty address in BET balance request');
-    const decBalance = await this._ERC20Contract.methods
+  async getBetBalance(address: string): Promise<Balance> {
+    if (!address) {
+      throw new Error("Empty address in BET balance request")
+    }
+
+    const decBalance: number = await this._ERC20Contract.methods
       .balanceOf(address)
-      .call();
-    const balance = Utils.dec2bet(decBalance);
-    return { balance, updated: Date.now() };
+      .call()
+    const balance: number = Utils.dec2bet(decBalance)
+
+    return {
+      balance,
+      updated: Date.now()
+    }
   }
 }
