@@ -12,6 +12,8 @@ import crypto from "crypto"
 import { config } from "dc-configs"
 import { Logger } from "dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
+import BigInteger from 'node-rsa/src/libs/jsbn'
+
 import * as Utils from "./utils"
 import Contract from "web3/eth/contract"
 
@@ -22,6 +24,7 @@ export class Eth {
   private _cache: Cache
   private _sign: any
   private _recover: any
+  private _signatureForRandom: string
   private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
@@ -130,6 +133,42 @@ export class Eth {
     address: string = this._account.address
   ): Promise<any> {
     return this._ERC20Contract.methods.allowance(address, spender).call()
+  }
+
+  generateRnd(ranges, firstSignature) {
+    const randomNumsArray = ranges.map(range => {
+      return range.reduce((prevRangeElement, nextRangeElement) => {
+        const rangeCalc = (nextRangeElement - prevRangeElement) + 1
+        const rangeInHex = rangeCalc.toString(16)
+        const _signature = this._signatureForRandom || Utils.add0x(firstSignature.toString('hex'))
+      
+        let randomInHex = Utils.sha3({ t: 'bytes', v: _signature })
+        this._signatureForRandom = this.signHash([{ t: 'bytes32', v: randomInHex}])
+
+        let randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
+  
+        const randomForCheck = (2 ** (256 - 1) / rangeCalc) * rangeCalc
+        const randomForCheckInBN = new BigInteger(randomForCheck.toString(16), 16)
+  
+        while (randomInBN.compareTo(randomForCheckInBN) > 0) {
+          randomInHex = Utils.sha3({ t: 'bytes32', v: randomInHex })
+          randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
+        }
+  
+        const rangeInBN = new BigInteger(rangeInHex, 16)
+        const minNumberToHex = prevRangeElement.toString(16)
+        const minNumberToBN = new BigInteger(minNumberToHex, 16)
+  
+        const calcRandom = (randomInBN.remainder(rangeInBN)).add(minNumberToBN)
+        const randomToInt = parseInt(Utils.add0x(calcRandom.toString(16)), 16)
+        logger.debug(`local random number: ${randomToInt}`)
+  
+        return randomToInt
+      })
+    })
+
+    delete this._signatureForRandom
+    return randomNumsArray
   }
 
   sendTransaction(
