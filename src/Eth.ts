@@ -184,19 +184,21 @@ export class Eth {
         gasPrice: this._params.gasParams.price
       })
 
-      const repeat = secs => {
-        setTimeout(() => {
-          this.sendTransaction(contract, methodName, args).then(resolve)
-        }, secs * 1000)
-      }
+      // const repeat = secs => {
+      //   setTimeout(() => {
+      //     this.sendTransaction(contract, methodName, args).then(resolve)
+      //   }, secs * 1000)
+      // }
 
       // Repeat if error
       receipt.catch(err => {
         logger.error("_REPEAT sendTransaction: " + methodName, err)
-        return repeat(1)
+        reject(err)
+        // return repeat(1)
       })
       receipt.on("error", err => {
         logger.error("REPEAT sendTransaction: " + methodName, err)
+        reject(err)
         // return repeat(2)
       })
 
