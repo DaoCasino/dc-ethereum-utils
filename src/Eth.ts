@@ -135,16 +135,17 @@ export class Eth {
     return this._ERC20Contract.methods.allowance(address, spender).call()
   }
 
-  generateRnd(ranges, firstSignature) {
-    const randomNumsArray = ranges.map(range => {
+  generateRnd(ranges, signature) {
+    const randomNumsArray = ranges.map((range, index) => {
       return range.reduce((prevRangeElement, nextRangeElement) => {
         const rangeCalc = (nextRangeElement - prevRangeElement) + 1
         const rangeInHex = rangeCalc.toString(16)
-        const _signature = this._signatureForRandom || Utils.add0x(firstSignature.toString('hex'))
+        const _signature = Utils.add0x(signature.toString('hex'))
       
-        let randomInHex = Utils.sha3({ t: 'bytes', v: _signature })
-        this._signatureForRandom = this.signHash([{ t: 'bytes32', v: randomInHex}])
-
+        let randomInHex = Utils.sha3(
+          { t: 'bytes', v: _signature },
+          { t: 'uint', v: index }
+        )
         let randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
   
         const randomForCheck = (2 ** (256 - 1) / rangeCalc) * rangeCalc
