@@ -4,8 +4,8 @@
   "description": "Utils to work with ethereum using web3 etc",
   "main": "./lib/index",
   "scripts": {
-    "build": "npm-run-all typescript",
     "build:ts": "yarn typescript",
+    "build": "yarn typescript",
     "clean": "rimraf lib",
     "typescript": "tsc --build"
   },

@@ -12,7 +12,7 @@ import crypto from "crypto"
 import { config } from "dc-configs"
 import { Logger } from "dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
-import BigInteger from 'node-rsa/src/libs/jsbn'
+import BigInteger from "node-rsa/src/libs/jsbn"
 
 import * as Utils from "./utils"
 import Contract from "web3/eth/contract"
@@ -34,7 +34,7 @@ export class Eth {
     this._sign = sign
     this._recover = recover
     this._web3 = new Web3(
-      new Web3.providers.HttpProvider(config.web3HttpProviderUrl)
+      new Web3.providers.HttpProvider(params.httpProviderUrl)
     )
     this._cache = { lastBalances: { bet: {}, eth: {} } }
 
@@ -137,32 +137,35 @@ export class Eth {
   generateRnd(ranges, signature) {
     const randomNumsArray = ranges.map((range, index) => {
       return range.reduce((prevRangeElement, nextRangeElement) => {
-        const rangeCalc = (nextRangeElement - prevRangeElement) + 1
+        const rangeCalc = nextRangeElement - prevRangeElement + 1
         const rangeInHex = rangeCalc.toString(16)
-        const _signature = Utils.add0x(signature.toString('hex'))
-      
+        const _signature = Utils.add0x(signature.toString("hex"))
+
         let randomInHex = Utils.sha3(
-          { t: 'bytes', v: _signature },
-          { t: 'uint', v: index }
+          { t: "bytes", v: _signature },
+          { t: "uint", v: index }
         )
         let randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
-  
+
         const randomForCheck = (2 ** (256 - 1) / rangeCalc) * rangeCalc
-        const randomForCheckInBN = new BigInteger(randomForCheck.toString(16), 16)
-  
+        const randomForCheckInBN = new BigInteger(
+          randomForCheck.toString(16),
+          16
+        )
+
         while (randomInBN.compareTo(randomForCheckInBN) > 0) {
-          randomInHex = Utils.sha3({ t: 'bytes32', v: randomInHex })
+          randomInHex = Utils.sha3({ t: "bytes32", v: randomInHex })
           randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
         }
-  
+
         const rangeInBN = new BigInteger(rangeInHex, 16)
         const minNumberToHex = prevRangeElement.toString(16)
         const minNumberToBN = new BigInteger(minNumberToHex, 16)
-  
-        const calcRandom = (randomInBN.remainder(rangeInBN)).add(minNumberToBN)
+
+        const calcRandom = randomInBN.remainder(rangeInBN).add(minNumberToBN)
         const randomToInt = parseInt(Utils.add0x(calcRandom.toString(16)), 16)
         logger.debug(`local random number: ${randomToInt}`)
-  
+
         return randomToInt
       })
     })
