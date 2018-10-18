@@ -111,7 +111,7 @@ export class Eth {
     return crypto.randomBytes(16).toString("hex")
   }
 
-  numFromHash(randomHash: any, min: number = 0, max: number = 100): number {
+  numFromHash(randomHash: string, min: number = 0, max: number = 100): number {
     if (min > max) {
       const box = min
       min = max
@@ -123,9 +123,8 @@ export class Eth {
 
     const hashBN = new BN(Utils.remove0x(randomHash), 16)
     const divBN = new BN(max - min, 10)
-    const divRes = hashBN.mod(divBN)
-
-    return Number(divRes.mod) + min
+    const divRes = hashBN.mod(divBN).toNumber()
+    return divRes + min
   }
 
   allowance(
