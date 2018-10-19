@@ -9,7 +9,7 @@ const {
   gasLimit: limit,
   web3HttpProviderUrl: httpProviderUrl,
   contracts,
-  privateKey,
+  privateKey
 } = config
 
 const eth = new Eth({
@@ -21,9 +21,7 @@ const eth = new Eth({
 const generateRNDTEST = (rangeStart, rangeEnd) => {
   eth.initAccount(privateKey)
   const seed = Utils.makeSeed()
-  const hash = eth.signHash([
-    {t: 'bytes32', v: seed}
-  ])
+  const hash = eth.signHash([{ t: "bytes32", v: seed }])
 
   const rnd = eth.generateRnd([
     [rangeStart, rangeEnd],
