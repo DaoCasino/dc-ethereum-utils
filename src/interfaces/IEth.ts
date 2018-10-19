@@ -33,7 +33,6 @@ export interface GasParams {
 }
 
 export interface EthParams {
-  privateKey: string
   httpProviderUrl: string
   ERC20ContractInfo: ContractInfo
   gasParams: GasParams

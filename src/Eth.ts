@@ -36,6 +36,7 @@ export class Eth {
     this._web3 = new Web3(
       new Web3.providers.HttpProvider(config.web3HttpProviderUrl)
     )
+    
     this._cache = { lastBalances: { bet: {}, eth: {} } }
 
     // Init ERC20 contract
@@ -53,8 +54,7 @@ export class Eth {
     return new this._web3.eth.Contract(abi, address)
   }
 
-  initAccount(privateKeyToCreate?: string): boolean {
-    const privateKey = privateKeyToCreate || this._params.privateKey
+  initAccount(privateKey: string): void {
     if (!privateKey) {
       const errorMessage = (typeof window === 'undefined') 
         ? `ENV variable ACCOUNT_PRIVATE_KEY required!
@@ -88,8 +88,40 @@ export class Eth {
     }
 
     this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
+  }
+
+  saveWallet(
+    walletPassword: string,
+    privateKey: string
+  ): void {
+    if (typeof walletPassword === 'undefined') {
+      throw new Error('walletPassword is not define')
+    }
+
+    if (typeof privateKey === 'undefined') {
+      throw new Error('privateKey is not define')
+    }
+
     this._web3.eth.accounts.wallet.add(privateKey)
-    return true
+    this._web3.eth.accounts.wallet.save(
+      walletPassword,
+      config.walletName
+    )
+  }
+
+  loadWallet(walletPassword: string): void {
+    if (typeof walletPassword === 'undefined') {
+      throw new Error('walletPassword is not define')
+    }
+
+    this._web3.eth.accounts.wallet.load(
+      walletPassword,
+      config.walletName  
+    )
+  }
+
+  getWalletAccount(): any {
+    return this._web3.eth.accounts.wallet[0]
   }
 
   signHash(argsToSign: SolidityTypeValue[]): string {
