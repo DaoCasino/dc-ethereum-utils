@@ -91,15 +91,18 @@ export class Eth {
     return true
   }
 
-  signHash(argsToSign: SolidityTypeValue[]): string {
+  signData(argsToSign: SolidityTypeValue[]): string {
     const hash = Utils.sha3(...argsToSign)
     const privateKey = Utils.add0x(this._account.privateKey)
-
+    return this._sign(hash, privateKey)
+  }
+  
+  signHash(hash:string): string {
+    const privateKey = Utils.add0x(this._account.privateKey)
     return this._sign(hash, privateKey)
   }
 
-  recover(argsToHash: SolidityTypeValue[], peerSign: string): string {
-    const hash = Utils.sha3(...argsToHash)
+  recover(hash:string, peerSign: string): string {
     return this._recover(hash, peerSign)
   }
 
