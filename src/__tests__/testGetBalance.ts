@@ -9,10 +9,12 @@ const {
   gasLimit: limit,
   web3HttpProviderUrl: httpProviderUrl,
   contracts,
+  walletName,
   privateKey
 } = config
 
 const eth = new Eth({
+  walletName,
   httpProviderUrl,
   ERC20ContractInfo: contracts.ERC20,
   gasParams: { price, limit },

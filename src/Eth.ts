@@ -105,7 +105,7 @@ export class Eth {
     this._web3.eth.accounts.wallet.add(privateKey)
     this._web3.eth.accounts.wallet.save(
       walletPassword,
-      config.walletName
+      this._params.walletName
     )
   }
 
@@ -116,7 +116,7 @@ export class Eth {
 
     this._web3.eth.accounts.wallet.load(
       walletPassword,
-      config.walletName  
+      this._params.walletName  
     )
   }
 

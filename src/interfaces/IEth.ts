@@ -33,6 +33,7 @@ export interface GasParams {
 }
 
 export interface EthParams {
+  walletName: string,
   httpProviderUrl: string
   ERC20ContractInfo: ContractInfo
   gasParams: GasParams
