@@ -23,7 +23,7 @@ const eth = new Eth({
 const generateRNDTEST = (rangeStart, rangeEnd) => {
   eth.initAccount(privateKey)
   const seed = Utils.makeSeed()
-  const hash = eth.signHash([{ t: "bytes32", v: seed }])
+  const hash = eth.signData([{ t: "bytes32", v: seed }])
 
   const rnd = eth.generateRnd([
     [rangeStart, rangeEnd],
