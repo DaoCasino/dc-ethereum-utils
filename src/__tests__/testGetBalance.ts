@@ -1,7 +1,9 @@
-import { config } from "dc-configs"
 import { Eth } from "../Eth"
 import * as Utils from "../utils"
+import { config } from "dc-configs"
+import { Logger } from "dc-logging"
 
+const logger = new Logger("eth test")
 const {
   gasPrice: price,
   gasLimit: limit,
@@ -16,14 +18,11 @@ const eth = new Eth({
   gasParams: { price, limit },
   privateKey
 })
-
-const test1 = () => {
-  eth.initAccount()
-  const seed = Utils.makeSeed()
-  const hash = eth.signData([{ t: "bytes32", v: seed }])
-
-  const rnd = eth.generateRnd([[0, 10], [0, 10], [0, 10]], hash)
+const test1 = async () => {
+  const balance = await eth.getBetBalance(
+    "0xcfe806e85787c1490e85c8028efda159616371c1"
+  )
+  logger.debug(balance)
 }
 
-test1()
 test1()

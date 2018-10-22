@@ -12,7 +12,7 @@ import crypto from "crypto"
 import { config } from "dc-configs"
 import { Logger } from "dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
-import BigInteger from 'node-rsa/src/libs/jsbn'
+import BigInteger from "node-rsa/src/libs/jsbn"
 
 import * as Utils from "./utils"
 import Contract from "web3/eth/contract"
@@ -34,7 +34,7 @@ export class Eth {
     this._sign = sign
     this._recover = recover
     this._web3 = new Web3(
-      new Web3.providers.HttpProvider(config.web3HttpProviderUrl)
+      new Web3.providers.HttpProvider(params.httpProviderUrl)
     )
     this._cache = { lastBalances: { bet: {}, eth: {} } }
 
@@ -91,15 +91,18 @@ export class Eth {
     return true
   }
 
-  signHash(argsToSign: SolidityTypeValue[]): string {
+  signData(argsToSign: SolidityTypeValue[]): string {
     const hash = Utils.sha3(...argsToSign)
     const privateKey = Utils.add0x(this._account.privateKey)
-
+    return this._sign(hash, privateKey)
+  }
+  
+  signHash(hash:string): string {
+    const privateKey = Utils.add0x(this._account.privateKey)
     return this._sign(hash, privateKey)
   }
 
-  recover(argsToHash: SolidityTypeValue[], peerSign: string): string {
-    const hash = Utils.sha3(...argsToHash)
+  recover(hash:string, peerSign: string): string {
     return this._recover(hash, peerSign)
   }
 
@@ -111,7 +114,7 @@ export class Eth {
     return crypto.randomBytes(16).toString("hex")
   }
 
-  numFromHash(randomHash: any, min: number = 0, max: number = 100): number {
+  numFromHash(randomHash: string, min: number = 0, max: number = 100): number {
     if (min > max) {
       const box = min
       min = max
@@ -123,9 +126,8 @@ export class Eth {
 
     const hashBN = new BN(Utils.remove0x(randomHash), 16)
     const divBN = new BN(max - min, 10)
-    const divRes = hashBN.mod(divBN)
-
-    return Number(divRes.mod) + min
+    const divRes = hashBN.mod(divBN).toNumber()
+    return divRes + min
   }
 
   allowance(
@@ -138,32 +140,35 @@ export class Eth {
   generateRnd(ranges, signature) {
     const randomNumsArray = ranges.map((range, index) => {
       return range.reduce((prevRangeElement, nextRangeElement) => {
-        const rangeCalc = (nextRangeElement - prevRangeElement) + 1
+        const rangeCalc = nextRangeElement - prevRangeElement + 1
         const rangeInHex = rangeCalc.toString(16)
-        const _signature = Utils.add0x(signature.toString('hex'))
-      
+        const _signature = Utils.add0x(signature.toString("hex"))
+
         let randomInHex = Utils.sha3(
-          { t: 'bytes', v: _signature },
-          { t: 'uint', v: index }
+          { t: "bytes", v: _signature },
+          { t: "uint", v: index }
         )
         let randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
-  
+
         const randomForCheck = (2 ** (256 - 1) / rangeCalc) * rangeCalc
-        const randomForCheckInBN = new BigInteger(randomForCheck.toString(16), 16)
-  
+        const randomForCheckInBN = new BigInteger(
+          randomForCheck.toString(16),
+          16
+        )
+
         while (randomInBN.compareTo(randomForCheckInBN) > 0) {
-          randomInHex = Utils.sha3({ t: 'bytes32', v: randomInHex })
+          randomInHex = Utils.sha3({ t: "bytes32", v: randomInHex })
           randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
         }
-  
+
         const rangeInBN = new BigInteger(rangeInHex, 16)
         const minNumberToHex = prevRangeElement.toString(16)
         const minNumberToBN = new BigInteger(minNumberToHex, 16)
-  
-        const calcRandom = (randomInBN.remainder(rangeInBN)).add(minNumberToBN)
+
+        const calcRandom = randomInBN.remainder(rangeInBN).add(minNumberToBN)
         const randomToInt = parseInt(Utils.add0x(calcRandom.toString(16)), 16)
         logger.debug(`local random number: ${randomToInt}`)
-  
+
         return randomToInt
       })
     })
