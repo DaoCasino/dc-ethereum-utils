@@ -292,7 +292,7 @@ export class Eth {
       throw new Error("Empty address in ETH balance request")
     }
 
-    const weiBalance: number = await this._web3.eth.getBalance(address)
+    const weiBalance: number | BN = await this._web3.eth.getBalance(address)
     const bnBalance: string | BN = this._web3.utils.fromWei(weiBalance, "ether")
 
     return {
