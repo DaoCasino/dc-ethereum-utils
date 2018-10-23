@@ -36,7 +36,7 @@ export class Eth {
     this._web3 = new Web3(
       new Web3.providers.HttpProvider(params.httpProviderUrl)
     )
-    
+
     this._cache = { lastBalances: { bet: {}, eth: {} } }
 
     // Init ERC20 contract
@@ -56,10 +56,11 @@ export class Eth {
 
   initAccount(privateKey: string): void {
     if (!privateKey) {
-      const errorMessage = (typeof window === 'undefined') 
-        ? `ENV variable ACCOUNT_PRIVATE_KEY required!
+      const errorMessage =
+        typeof window === "undefined"
+          ? `ENV variable ACCOUNT_PRIVATE_KEY required!
            set ENV variable ACCOUNT_PRIVATE_KEY and init again`
-        : `Private key is undefined
+          : `Private key is undefined
            Please set private key in params and init again`
 
       switch (process.env.DC_NETWORK) {
@@ -78,7 +79,9 @@ export class Eth {
           break
         default:
           logger.warn(`
-            You can use this privkey: ${this._web3.eth.accounts.create().privateKey},
+            You can use this privkey: ${
+              this._web3.eth.accounts.create().privateKey
+            },
             but be sure that account have ETH and BETs
           `)
           break
@@ -89,35 +92,35 @@ export class Eth {
 
     this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
   }
+  /**
+   *
+   * @param privateKey
+   * @param walletPassword use only in browser
+   */
+  saveWallet(privateKey: string, walletPassword?: string): void {
+    // if (typeof walletPassword === "undefined") {
+    //   throw new Error("walletPassword is not defined")
+    // }
 
-  saveWallet(
-    walletPassword: string,
-    privateKey: string
-  ): void {
-    if (typeof walletPassword === 'undefined') {
-      throw new Error('walletPassword is not define')
-    }
-
-    if (typeof privateKey === 'undefined') {
-      throw new Error('privateKey is not define')
+    if (typeof privateKey === "undefined") {
+      throw new Error("privateKey is not defined")
     }
 
     this._web3.eth.accounts.wallet.add(privateKey)
-    this._web3.eth.accounts.wallet.save(
-      walletPassword,
-      this._params.walletName
-    )
+    if (walletPassword) {
+      this._web3.eth.accounts.wallet.save(
+        walletPassword,
+        this._params.walletName
+      )
+    }
   }
 
   loadWallet(walletPassword: string): void {
-    if (typeof walletPassword === 'undefined') {
-      throw new Error('walletPassword is not define')
+    if (typeof walletPassword === "undefined") {
+      throw new Error("walletPassword is not define")
     }
 
-    this._web3.eth.accounts.wallet.load(
-      walletPassword,
-      this._params.walletName  
-    )
+    this._web3.eth.accounts.wallet.load(walletPassword, this._params.walletName)
   }
 
   getWalletAccount(): any {
@@ -129,13 +132,13 @@ export class Eth {
     const privateKey = Utils.add0x(this._account.privateKey)
     return this._sign(hash, privateKey)
   }
-  
-  signHash(hash:string): string {
+
+  signHash(hash: string): string {
     const privateKey = Utils.add0x(this._account.privateKey)
     return this._sign(hash, privateKey)
   }
 
-  recover(hash:string, peerSign: string): string {
+  recover(hash: string, peerSign: string): string {
     return this._recover(hash, peerSign)
   }
 
