@@ -5,6 +5,5 @@
     "rootDir": "src",
     "outDir": "lib"
   },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../dc-logging" }, { "path": "../dc-configs" }]
+  "include": ["src/**/*"]
 }
