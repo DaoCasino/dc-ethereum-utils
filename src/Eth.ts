@@ -41,8 +41,8 @@ export class Eth {
 
     // Init ERC20 contract
     this._ERC20Contract = this.initContract(
-      params.ERC20ContractInfo.abi,
-      params.ERC20ContractInfo.address
+      this._params.ERC20ContractInfo.abi,
+      this._params.ERC20ContractInfo.address
     )
   }
 
@@ -98,16 +98,19 @@ export class Eth {
    * @param walletPassword use only in browser
    */
   saveWallet(privateKey: string, walletPassword?: string): void {
-    // if (typeof walletPassword === "undefined") {
-    //   throw new Error("walletPassword is not defined")
-    // }
+    if (
+      typeof window !== "undefined" &&
+      typeof walletPassword === "undefined"
+    ) {
+      throw new Error("walletPassword is not defined")
+    }
 
     if (typeof privateKey === "undefined") {
       throw new Error("privateKey is not defined")
     }
 
     this._web3.eth.accounts.wallet.add(privateKey)
-    if (walletPassword) {
+    if (walletPassword && typeof window !== "undefined") {
       this._web3.eth.accounts.wallet.save(
         walletPassword,
         this._params.walletName
@@ -219,12 +222,17 @@ export class Eth {
     args: any[]
   ): Promise<any> {
     return new Promise((resolve, reject) => {
+      const from = this._account.address
       const receipt = contract.methods[methodName](...args).send({
-        from: this._account.address,
+        from,
         gas: this._params.gasParams.limit,
         gasPrice: this._params.gasParams.price
       })
-
+      logger.debug(`Sent transaction: 
+        contract: ${contract.options.address}, 
+        method: ${methodName},
+        from: ${from},
+        args: ${JSON.stringify(args)}`)
       // const repeat = secs => {
       //   setTimeout(() => {
       //     this.sendTransaction(contract, methodName, args).then(resolve)
@@ -279,15 +287,19 @@ export class Eth {
   async getBalances(
     address: string = this._account.address
   ): Promise<LastBalances> {
-    const [bet, eth] = await Promise.all([
-      this.getBetBalance(address),
-      this.getEthBalance(address)
-    ])
-
-    this._cache.lastBalances.bet = bet
-    this._cache.lastBalances.eth = eth
-
-    return this._cache.lastBalances
+    try {
+      const [bet, eth] = await Promise.all([
+        this.getBetBalance(address),
+        this.getEthBalance(address)
+      ])
+  
+      this._cache.lastBalances.bet = bet
+      this._cache.lastBalances.eth = eth
+  
+      return this._cache.lastBalances
+    } catch (error) {
+      throw error
+    }
   }
 
   async getEthBalance(address: string): Promise<Balance> {
@@ -295,12 +307,16 @@ export class Eth {
       throw new Error("Empty address in ETH balance request")
     }
 
-    const weiBalance: number | BN = await this._web3.eth.getBalance(address)
-    const bnBalance: string | BN = this._web3.utils.fromWei(weiBalance, "ether")
-
-    return {
-      balance: Number(bnBalance),
-      updated: Date.now()
+    try {
+      const weiBalance: number | BN = await this._web3.eth.getBalance(address)
+      const bnBalance: string | BN = this._web3.utils.fromWei(weiBalance, "ether")
+  
+      return {
+        balance: Number(bnBalance),
+        updated: Date.now()
+      }
+    } catch (error) {
+      throw error
     }
   }
 
@@ -309,14 +325,18 @@ export class Eth {
       throw new Error("Empty address in BET balance request")
     }
 
-    const decBalance: number = await this._ERC20Contract.methods
-      .balanceOf(address)
-      .call()
-    const balance: number = Utils.dec2bet(decBalance)
-
-    return {
-      balance,
-      updated: Date.now()
+    try {
+      const decBalance: number = await this._ERC20Contract.methods
+        .balanceOf(address)
+        .call()
+      const balance: number = Utils.dec2bet(decBalance)
+  
+      return {
+        balance,
+        updated: Date.now()
+      }
+    } catch (error) {
+      throw error
     }
   }
 }
