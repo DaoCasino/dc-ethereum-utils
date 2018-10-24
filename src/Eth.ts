@@ -98,16 +98,19 @@ export class Eth {
    * @param walletPassword use only in browser
    */
   saveWallet(privateKey: string, walletPassword?: string): void {
-    // if (typeof walletPassword === "undefined") {
-    //   throw new Error("walletPassword is not defined")
-    // }
+    if (
+      typeof window !== "undefined" &&
+      typeof walletPassword === "undefined"
+    ) {
+      throw new Error("walletPassword is not defined")
+    }
 
     if (typeof privateKey === "undefined") {
       throw new Error("privateKey is not defined")
     }
 
     this._web3.eth.accounts.wallet.add(privateKey)
-    if (walletPassword) {
+    if (walletPassword && typeof window !== "undefined") {
       this._web3.eth.accounts.wallet.save(
         walletPassword,
         this._params.walletName
@@ -219,12 +222,17 @@ export class Eth {
     args: any[]
   ): Promise<any> {
     return new Promise((resolve, reject) => {
+      const from = this._account.address
       const receipt = contract.methods[methodName](...args).send({
-        from: this._account.address,
+        from,
         gas: this._params.gasParams.limit,
         gasPrice: this._params.gasParams.price
       })
-
+      logger.debug(`Sent transaction: 
+        contract: ${contract.options.address}, 
+        method: ${methodName},
+        from: ${from},
+        args: ${JSON.stringify(args)}`)
       // const repeat = secs => {
       //   setTimeout(() => {
       //     this.sendTransaction(contract, methodName, args).then(resolve)
