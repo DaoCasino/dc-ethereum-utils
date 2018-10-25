@@ -11,7 +11,7 @@ const {
   contracts,
   walletName,
   privateKey
-} = config
+} = config.default
 
 const eth = new Eth({
   walletName,
