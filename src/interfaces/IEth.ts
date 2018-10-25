@@ -1,4 +1,5 @@
 import Contract from "web3/eth/contract"
+import { Account as Web3Account } from 'web3/eth/accounts'
 import { ContractInfo } from "dc-configs"
 
 type SolidityType =
@@ -41,7 +42,7 @@ export interface EthParams {
 }
 
 export interface ETHInstance {
-  getAccount: () => any
+  getAccount: () => Web3Account
   initContract: (abi: any, address: string) => Contract
   initAccount: (privateKey: string) => void
 
