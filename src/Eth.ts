@@ -2,6 +2,7 @@ import {
   Cache,
   Balance,
   EthParams,
+  ETHInstance,
   LastBalances,
   SolidityTypeValue
 } from "./interfaces/IEth"
@@ -19,7 +20,7 @@ import Contract from "web3/eth/contract"
 
 const logger = new Logger("EthInstance")
 
-export class Eth {
+export class Eth implements ETHInstance {
   private _web3: Web3
   private _cache: Cache
   private _sign: any
@@ -149,7 +150,7 @@ export class Eth {
     return this._web3.eth.getBlockNumber()
   }
 
-  randomHash() {
+  randomHash(): string {
     return crypto.randomBytes(16).toString("hex")
   }
 
@@ -176,7 +177,7 @@ export class Eth {
     return this._ERC20Contract.methods.allowance(address, spender).call()
   }
 
-  generateRnd(ranges, signature) {
+  generateRnd(ranges: number[][], signature: any): number[] {
     const randomNumsArray = ranges.map((range, index) => {
       return range.reduce((prevRangeElement, nextRangeElement) => {
         const rangeCalc = nextRangeElement - prevRangeElement + 1
