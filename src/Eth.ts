@@ -2,6 +2,7 @@ import {
   Cache,
   Balance,
   EthParams,
+  ETHInstance,
   LastBalances,
   SolidityTypeValue
 } from "./interfaces/IEth"
@@ -15,11 +16,13 @@ import { sign, recover } from "eth-lib/lib/account.js"
 import BigInteger from "node-rsa/src/libs/jsbn"
 
 import * as Utils from "./utils"
+
+import { Account as Web3Account } from 'web3/eth/accounts'
 import Contract from "web3/eth/contract"
 
 const logger = new Logger("EthInstance")
 
-export class Eth {
+export class Eth implements ETHInstance {
   private _web3: Web3
   private _cache: Cache
   private _sign: any
@@ -46,7 +49,7 @@ export class Eth {
     )
   }
 
-  getAccount(): any {
+  getAccount(): Web3Account {
     return this._account
   }
 
@@ -149,7 +152,7 @@ export class Eth {
     return this._web3.eth.getBlockNumber()
   }
 
-  randomHash() {
+  randomHash(): string {
     return crypto.randomBytes(16).toString("hex")
   }
 
@@ -179,7 +182,7 @@ export class Eth {
       .then(weis => Utils.dec2bet(weis))
   }
 
-  generateRnd(ranges, signature) {
+  generateRnd(ranges: number[][], signature: any): number[] {
     const randomNumsArray = ranges.map((range, index) => {
       return range.reduce((prevRangeElement, nextRangeElement) => {
         const rangeCalc = nextRangeElement - prevRangeElement + 1
