@@ -1,5 +1,5 @@
 import Contract from "web3/eth/contract"
-import { Account as Web3Account } from 'web3/eth/accounts'
+import { Account as Web3Account } from "web3/eth/accounts"
 import { ContractInfo } from "dc-configs"
 
 type SolidityType =
@@ -35,7 +35,7 @@ export interface GasParams {
 }
 
 export interface EthParams {
-  walletName: string,
+  walletName: string
   httpProviderUrl: string
   ERC20ContractInfo: ContractInfo
   gasParams: GasParams
@@ -53,26 +53,16 @@ export interface ETHInstance {
   signData: (argsToSign: SolidityTypeValue[]) => string
   signHash: (hash: string) => string
   recover: (hash: string, peerSign: string) => string
-  
+
   getBlockNumber: () => Promise<any>
   randomHash: () => string
 
-  numFromHash: (
-    randomHash: string,
-    min: number,
-    max: number
-  ) => number
+  numFromHash: (randomHash: string, min: number, max: number) => number
 
-  allowance: (
-    spender: string,
-    address: string
-  ) => Promise<any>
+  allowance: (spender: string, address: string) => Promise<any>
 
-  generateRnd: (
-    ranges: number[][],
-    signature: string
-  ) => number[]
-  
+  generateRnd: (ranges: number[][], signature: string) => number[]
+
   sendTransaction: (
     contract: Contract,
     methodName: string,
@@ -81,10 +71,11 @@ export interface ETHInstance {
 
   ERC20ApproveSafe: (
     spender: string,
-    amount: number
+    amount: number,
+    minAmount?: number
   ) => Promise<number>
 
   getBalances: (address?: string) => Promise<LastBalances>
   getEthBalance: (address: string) => Promise<Balance>
-  getBetBalance: (address: string) => Promise<Balance> 
+  getBetBalance: (address: string) => Promise<Balance>
 }

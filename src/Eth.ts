@@ -17,7 +17,7 @@ import BigInteger from "node-rsa/src/libs/jsbn"
 
 import * as Utils from "./utils"
 
-import { Account as Web3Account } from 'web3/eth/accounts'
+import { Account as Web3Account } from "web3/eth/accounts"
 import Contract from "web3/eth/contract"
 
 const logger = new Logger("EthInstance")
@@ -273,14 +273,18 @@ export class Eth implements ETHInstance {
     })
   }
 
-  async ERC20ApproveSafe(spender: string, amount: number): Promise<number> {
+  async ERC20ApproveSafe(
+    spender: string,
+    amount: number,
+    minAmount: number = amount
+  ): Promise<number> {
     const allowance: number = await this.allowance(spender)
 
-    if (0 < allowance && allowance < amount) {
+    if (0 < allowance && allowance < minAmount) {
       await this.sendTransaction(this._ERC20Contract, "approve", [spender, 0])
     }
 
-    if (allowance < amount) {
+    if (allowance < minAmount) {
       await this.sendTransaction(this._ERC20Contract, "approve", [
         spender,
         this._web3.utils.toWei(amount.toString())
