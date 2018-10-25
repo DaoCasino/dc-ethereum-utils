@@ -2,6 +2,7 @@ import {
   Cache,
   Balance,
   EthParams,
+  ETHInstance,
   LastBalances,
   SolidityTypeValue
 } from "./interfaces/IEth"
@@ -15,11 +16,13 @@ import { sign, recover } from "eth-lib/lib/account.js"
 import BigInteger from "node-rsa/src/libs/jsbn"
 
 import * as Utils from "./utils"
+
+import { Account as Web3Account } from 'web3/eth/accounts'
 import Contract from "web3/eth/contract"
 
 const logger = new Logger("EthInstance")
 
-export class Eth {
+export class Eth implements ETHInstance {
   private _web3: Web3
   private _cache: Cache
   private _sign: any
@@ -46,7 +49,7 @@ export class Eth {
     )
   }
 
-  getAccount(): any {
+  getAccount(): Web3Account {
     return this._account
   }
 
@@ -149,7 +152,7 @@ export class Eth {
     return this._web3.eth.getBlockNumber()
   }
 
-  randomHash() {
+  randomHash(): string {
     return crypto.randomBytes(16).toString("hex")
   }
 
@@ -173,10 +176,13 @@ export class Eth {
     spender: string,
     address: string = this._account.address
   ): Promise<any> {
-    return this._ERC20Contract.methods.allowance(address, spender).call()
+    return this._ERC20Contract.methods
+      .allowance(address, spender)
+      .call()
+      .then(weis => Utils.dec2bet(weis))
   }
 
-  generateRnd(ranges, signature) {
+  generateRnd(ranges: number[][], signature: any): number[] {
     const randomNumsArray = ranges.map((range, index) => {
       return range.reduce((prevRangeElement, nextRangeElement) => {
         const rangeCalc = nextRangeElement - prevRangeElement + 1
@@ -255,7 +261,7 @@ export class Eth {
         logger.debug("TX hash", transactionHash)
       )
       receipt.on("confirmation", confirmationCount => {
-        if (confirmationCount <= config.waitForConfirmations) {
+        if (confirmationCount <= config.default.waitForConfirmations) {
           logger.debug(`${methodName} confirmationCount: ${confirmationCount}`)
         } else {
           const rcpt = receipt as any
@@ -292,10 +298,10 @@ export class Eth {
         this.getBetBalance(address),
         this.getEthBalance(address)
       ])
-  
+
       this._cache.lastBalances.bet = bet
       this._cache.lastBalances.eth = eth
-  
+
       return this._cache.lastBalances
     } catch (error) {
       throw error
@@ -309,8 +315,11 @@ export class Eth {
 
     try {
       const weiBalance: number | BN = await this._web3.eth.getBalance(address)
-      const bnBalance: string | BN = this._web3.utils.fromWei(weiBalance, "ether")
-  
+      const bnBalance: string | BN = this._web3.utils.fromWei(
+        weiBalance,
+        "ether"
+      )
+
       return {
         balance: Number(bnBalance),
         updated: Date.now()
@@ -330,7 +339,7 @@ export class Eth {
         .balanceOf(address)
         .call()
       const balance: number = Utils.dec2bet(decBalance)
-  
+
       return {
         balance,
         updated: Date.now()
