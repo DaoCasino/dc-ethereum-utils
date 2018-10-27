@@ -8,18 +8,18 @@ const {
   gasPrice: price,
   gasLimit: limit,
   web3HttpProviderUrl: httpProviderUrl,
-  contracts,
+  getContracts,
   walletName,
   privateKey
 } = config.default
 
-const eth = new Eth({
-  walletName,
-  httpProviderUrl,
-  ERC20ContractInfo: contracts.ERC20,
-  gasParams: { price, limit },
-})
 const test1 = async () => {
+  const eth = new Eth({
+    walletName,
+    httpProviderUrl,
+    ERC20ContractInfo: (await getContracts()).ERC20,
+    gasParams: { price, limit }
+  })
   const balance = await eth.getBetBalance(
     "0xcfe806e85787c1490e85c8028efda159616371c1"
   )
