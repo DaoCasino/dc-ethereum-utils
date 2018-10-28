@@ -238,7 +238,10 @@ export class Eth implements ETHInstance {
         contract: ${contract.options.address}, 
         method: ${methodName},
         from: ${from},
-        args: ${JSON.stringify(args)}`)
+        args: ${JSON.stringify(args)}
+        gas: ${this._params.gasParams.limit}
+        gasPrice: ${this._params.gasParams.price}
+      `)
       // const repeat = secs => {
       //   setTimeout(() => {
       //     this.sendTransaction(contract, methodName, args).then(resolve)

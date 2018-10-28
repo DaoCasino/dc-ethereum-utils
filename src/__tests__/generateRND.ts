@@ -8,19 +8,18 @@ const {
   gasPrice: price,
   gasLimit: limit,
   web3HttpProviderUrl: httpProviderUrl,
-  contracts,
+  getContracts,
   walletName,
   privateKey
 } = config.default
 
-const eth = new Eth({
-  walletName,
-  httpProviderUrl,
-  ERC20ContractInfo: contracts.ERC20,
-  gasParams: { price, limit }
-})
-
-const generateRNDTEST = (rangeStart, rangeEnd) => {
+const generateRNDTEST = async (rangeStart, rangeEnd) => {
+  const eth = new Eth({
+    walletName,
+    httpProviderUrl,
+    ERC20ContractInfo: (await getContracts()).ERC20,
+    gasParams: { price, limit }
+  })
   eth.initAccount(privateKey)
   const seed = Utils.makeSeed()
   const hash = eth.signData([{ t: "bytes32", v: seed }])
