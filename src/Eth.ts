@@ -264,6 +264,7 @@ export class Eth implements ETHInstance {
         logger.debug("TX hash", transactionHash)
       )
       receipt.on("confirmation", confirmationCount => {
+        console.log(1)
         if (confirmationCount <= config.default.waitForConfirmations) {
           logger.debug(`${methodName} confirmationCount: ${confirmationCount}`)
         } else {
