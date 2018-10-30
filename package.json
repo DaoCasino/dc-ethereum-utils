@@ -1,6 +1,6 @@
 {
   "name": "dc-ethereum-utils",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Utils to work with ethereum using web3 etc",
   "main": "./lib/index",
   "scripts": {
