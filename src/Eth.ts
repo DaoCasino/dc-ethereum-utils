@@ -242,29 +242,21 @@ export class Eth implements ETHInstance {
         gas: ${this._params.gasParams.limit}
         gasPrice: ${this._params.gasParams.price}
       `)
-      // const repeat = secs => {
-      //   setTimeout(() => {
-      //     this.sendTransaction(contract, methodName, args).then(resolve)
-      //   }, secs * 1000)
-      // }
 
       // Repeat if error
       receipt.catch(err => {
         logger.error("_REPEAT sendTransaction: " + methodName, err)
         reject(err)
-        // return repeat(1)
       })
       receipt.on("error", err => {
         logger.error("REPEAT sendTransaction: " + methodName, err)
         reject(err)
-        // return repeat(2)
       })
 
-      receipt.on("transactionHash", transactionHash =>
+      receipt.on("transactionHash", transactionHash => {
         logger.debug("TX hash", transactionHash)
-      )
+      })
       receipt.on("confirmation", confirmationCount => {
-        console.log(1)
         if (confirmationCount <= config.default.waitForConfirmations) {
           logger.debug(`${methodName} confirmationCount: ${confirmationCount}`)
         } else {
