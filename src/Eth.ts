@@ -10,7 +10,7 @@ import {
 import BN from "bn.js"
 import Web3 from "web3"
 import crypto from "crypto"
-import { config } from "dc-configs"
+import { config, ABIDefinition } from "dc-configs"
 import { Logger } from "dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
 import BigInteger from "node-rsa/src/libs/jsbn"
@@ -53,7 +53,7 @@ export class Eth implements ETHInstance {
     return this._account
   }
 
-  initContract(abi: any, address: string): Contract {
+  initContract(abi: ABIDefinition[], address: string): Contract {
     return new this._web3.eth.Contract(abi, address)
   }
 
