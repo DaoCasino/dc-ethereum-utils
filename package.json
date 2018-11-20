@@ -1,6 +1,6 @@
 {
   "name": "dc-ethereum-utils",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Utils to work with ethereum using web3 etc",
   "main": "./lib/index",
   "scripts": {
@@ -16,8 +16,8 @@
     "@types/node": "^10.11.7",
     "@types/web3": "^1.0.6",
     "bn.js": "^4.11.8",
-    "dc-configs": "^0.1.16",
-    "dc-logging": "^0.1.8",
+    "dc-configs": "^0.1.17",
+    "dc-logging": "^0.1.9",
     "eth-lib": "^0.2.8",
     "node-rsa": "^1.0.1",
     "web3": "1.0.0-beta.36",
@@ -28,5 +28,5 @@
     "tslint": "5.11.0",
     "typescript": "^3.1.2"
   },
-  "gitHead": "2e9dbae114ec34bdad7a3d9d956d8b8035eb06e7"
+  "gitHead": "73069a25a0ce81acdf609d9d58ea60332fa06000"
 }
