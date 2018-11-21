@@ -12,7 +12,7 @@ type SolidityType =
 
 export interface SolidityTypeValue {
   t: SolidityType
-  v: string | number[] | boolean
+  v: string | string[] | number[] | boolean
 }
 
 export interface Balance {

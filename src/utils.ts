@@ -9,20 +9,24 @@ export const dec2bet = (val, r = 2) => {
   return web3_utils.fromWei(numToHex(val)) * 1
 }
 
-export const bet2dec = (value: number):number => {
+export const bet2dec = (value: number|string):string => {
   let b = web3_utils.toWei(value.toString())
   if (b.indexOf('.') > -1) {
     b = b.split('.')[0] * 1
   }
-  return +b
+  return ''+b
 }
 
-export const bets2decs = (value:number[]):number[] => {
-  const arr:number[] = []
+export const bets2decs = (value:number[]):string[] => {
+  const arr:string[] = []
   for(let i=0; i < value.length; i++){
     arr.push( bet2dec( value[i] ) )
   }
   return arr
+}
+
+export const betsSumm = (arr:number[]):string => {
+  return bet2dec(arr.reduce((a,b)=>a+b))
 }
 
 export const flatternArr = (arr:any[][]) => {
