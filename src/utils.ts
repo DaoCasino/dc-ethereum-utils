@@ -9,12 +9,28 @@ export const dec2bet = (val, r = 2) => {
   return web3_utils.fromWei(numToHex(val)) * 1
 }
 
-export const bet2dec = (value: number) => {
+export const bet2dec = (value: number|string):string => {
   let b = web3_utils.toWei(value.toString())
   if (b.indexOf('.') > -1) {
     b = b.split('.')[0] * 1
   }
-  return b
+  return ''+b
+}
+
+export const bets2decs = (value:number[]):string[] => {
+  const arr:string[] = []
+  for(let i=0; i < value.length; i++){
+    arr.push( bet2dec( value[i] ) )
+  }
+  return arr
+}
+
+export const betsSumm = (arr:number[]):string => {
+  return bet2dec(arr.reduce((a,b)=>a+b))
+}
+
+export const flatternArr = (arr:any[][]) => {
+   return arr.reduce((acc, val) => Array.isArray(val) ? acc.concat(flatternArr(val)) : acc.concat(val), [])
 }
 
 export const clearcode = string => {
@@ -76,7 +92,7 @@ export const remove0x = str => {
 
 export const add0x = str => (str.startsWith(ZERO_X) ? str : `0x${str}`)
 
-export const makeSeed = () => {
+export const makeSeed = ():string => {
   let str = '0x'
   const possible = 'abcdef0123456789'
 
