@@ -12,7 +12,7 @@ type SolidityType =
 
 export interface SolidityTypeValue {
   t: SolidityType
-  v: string | number[] | boolean
+  v: string | string[] | number[] | boolean
 }
 
 export interface Balance {
@@ -55,13 +55,8 @@ export interface ETHInstance {
   recover: (hash: string, peerSign: string) => string
 
   getBlockNumber: () => Promise<any>
-  randomHash: () => string
-
-  numFromHash: (randomHash: string, min: number, max: number) => number
 
   allowance: (spender: string, address: string) => Promise<any>
-
-  generateRnd: (ranges: number[][], signature: string) => number[]
 
   sendTransaction: (
     contract: Contract,
