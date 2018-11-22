@@ -10,7 +10,7 @@ import {
 import BN from "bn.js"
 import Web3 from "web3"
 import crypto from "crypto"
-import { config } from "dc-configs"
+import { config, ABIDefinition } from "dc-configs"
 import { Logger } from "dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
 import BigInteger from "node-rsa/src/libs/jsbn"
@@ -27,7 +27,6 @@ export class Eth implements ETHInstance {
   private _cache: Cache
   private _sign: any
   private _recover: any
-  private _signatureForRandom: string
   private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
@@ -53,7 +52,7 @@ export class Eth implements ETHInstance {
     return this._account
   }
 
-  initContract(abi: any, address: string): Contract {
+  initContract(abi: ABIDefinition[], address: string): Contract {
     return new this._web3.eth.Contract(abi, address)
   }
 
@@ -152,26 +151,6 @@ export class Eth implements ETHInstance {
     return this._web3.eth.getBlockNumber()
   }
 
-  randomHash(): string {
-    return crypto.randomBytes(16).toString("hex")
-  }
-
-  numFromHash(randomHash: string, min: number = 0, max: number = 100): number {
-    if (min > max) {
-      const box = min
-      min = max
-      max = box
-    }
-
-    if (min === max) return max
-    max += 1
-
-    const hashBN = new BN(Utils.remove0x(randomHash), 16)
-    const divBN = new BN(max - min, 10)
-    const divRes = hashBN.mod(divBN).toNumber()
-    return divRes + min
-  }
-
   allowance(
     spender: string,
     address: string = this._account.address
@@ -180,46 +159,6 @@ export class Eth implements ETHInstance {
       .allowance(address, spender)
       .call()
       .then(weis => Utils.dec2bet(weis))
-  }
-
-  generateRnd(ranges: number[][], signature: any): number[] {
-    const randomNumsArray = ranges.map((range, index) => {
-      return range.reduce((prevRangeElement, nextRangeElement) => {
-        const rangeCalc = nextRangeElement - prevRangeElement + 1
-        const rangeInHex = rangeCalc.toString(16)
-        const _signature = Utils.add0x(signature.toString("hex"))
-
-        let randomInHex = Utils.sha3(
-          { t: "bytes", v: _signature },
-          { t: "uint", v: index }
-        )
-        let randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
-
-        const randomForCheck = (2 ** (256 - 1) / rangeCalc) * rangeCalc
-        const randomForCheckInBN = new BigInteger(
-          randomForCheck.toString(16),
-          16
-        )
-
-        while (randomInBN.compareTo(randomForCheckInBN) > 0) {
-          randomInHex = Utils.sha3({ t: "bytes32", v: randomInHex })
-          randomInBN = new BigInteger(Utils.remove0x(randomInHex), 16)
-        }
-
-        const rangeInBN = new BigInteger(rangeInHex, 16)
-        const minNumberToHex = prevRangeElement.toString(16)
-        const minNumberToBN = new BigInteger(minNumberToHex, 16)
-
-        const calcRandom = randomInBN.remainder(rangeInBN).add(minNumberToBN)
-        const randomToInt = parseInt(Utils.add0x(calcRandom.toString(16)), 16)
-        logger.debug(`local random number: ${randomToInt}`)
-
-        return randomToInt
-      })
-    })
-
-    delete this._signatureForRandom
-    return randomNumsArray
   }
 
   sendTransaction(
