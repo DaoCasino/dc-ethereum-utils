@@ -2,34 +2,43 @@ import web3_utils from 'web3-utils'
 
 const web3Sha3 = web3_utils.soliditySha3
 const ZERO_X = '0x'
+const NUMS_FOR_ROUND = 6
 
 export const sha3 = web3Sha3
 
-export const dec2bet = (val, r = 2) => {
-  return web3_utils.fromWei(numToHex(val)) * 1
+export const dec2bet = (value: number | string): number  => {
+  const numInWei = web3_utils.fromWei(numToHex(value))
+  return Number(numInWei)
 }
 
-export const bet2dec = (value: number|string):string => {
-  let b = web3_utils.toWei(value.toString())
-  if (b.indexOf('.') > -1) {
-    b = b.split('.')[0] * 1
+export const bet2dec = (value: number | string): string => {
+  let numInWei = web3_utils.toWei(value.toString())
+  if (~numInWei.indexOf('.')) {
+    numInWei = numInWei.split('.')[0]
   }
-  return ''+b
+
+  let roundNum = numInWei.substr(0, numInWei.length - NUMS_FOR_ROUND)
+  for (let i = 0; i < NUMS_FOR_ROUND; i++) {
+    roundNum += '0'
+  }
+
+  return roundNum
 }
 
-export const bets2decs = (value:number[]):string[] => {
-  const arr:string[] = []
-  for(let i=0; i < value.length; i++){
-    arr.push( bet2dec( value[i] ) )
+export const bets2decs = (value: number[]): string[] => {
+  const arr: string[] = []
+  for(let i = 0; i < value.length; i++){
+    arr.push(bet2dec(value[i]))
   }
+
   return arr
 }
 
-export const betsSumm = (arr:number[]):string => {
-  return bet2dec(arr.reduce((a,b)=>a+b))
+export const betsSumm = (arr: number[] ): string => {
+  return bet2dec(arr.reduce((a, b)=> a + b))
 }
 
-export const flatternArr = (arr:any[][]) => {
+export const flatternArr = (arr: any[][]) => {
    return arr.reduce((acc, val) => Array.isArray(val) ? acc.concat(flatternArr(val)) : acc.concat(val), [])
 }
 
