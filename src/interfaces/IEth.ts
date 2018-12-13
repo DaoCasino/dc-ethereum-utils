@@ -1,6 +1,6 @@
 import Contract from "web3/eth/contract"
 import { Account as Web3Account } from "web3/eth/accounts"
-import { ContractInfo } from "dc-configs"
+import { ContractInfo } from "@daocasino/dc-configs"
 
 type SolidityType =
   | "bytes32"
