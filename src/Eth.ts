@@ -93,6 +93,7 @@ export class Eth implements ETHInstance {
     }
 
     this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
+    this._web3.eth.accounts.wallet.add(privateKey)
   }
   /**
    *
