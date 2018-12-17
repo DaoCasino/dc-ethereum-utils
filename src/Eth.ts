@@ -10,8 +10,8 @@ import {
 import BN from "bn.js"
 import Web3 from "web3"
 import crypto from "crypto"
-import { config, ABIDefinition } from "dc-configs"
-import { Logger } from "dc-logging"
+import { config, ABIDefinition } from "@daocasino/dc-configs"
+import { Logger } from "@daocasino/dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
 import BigInteger from "node-rsa/src/libs/jsbn"
 

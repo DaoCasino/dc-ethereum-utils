@@ -1,7 +1,7 @@
 import { Eth } from "../Eth"
 import * as Utils from "../utils"
-import { config } from "dc-configs"
-import { Logger } from "dc-logging"
+import { config } from "@daocasino/dc-configs"
+import { Logger } from "@daocasino/dc-logging"
 
 const logger = new Logger("eth test")
 const {
