@@ -6,10 +6,9 @@ import {
   LastBalances,
   SolidityTypeValue
 } from "./interfaces/IEth"
-
 import BN from "bn.js"
 import Web3 from "web3"
-import crypto from "crypto"
+import hdkey from 'ethereumjs-wallet/hdkey'
 import { config, ABIDefinition } from "@daocasino/dc-configs"
 import { Logger } from "@daocasino/dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
@@ -94,6 +93,24 @@ export class Eth implements ETHInstance {
 
     this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
     this._web3.eth.accounts.wallet.add(privateKey)
+  }
+
+  createAccountForMnemonic(
+    mneminicSeed: string,
+    indexForCreate: number
+  ): {
+    address: string,
+    privateKey: string
+  } {
+    const hdpath = `m/44'/60'/0'/0/${indexForCreate}`
+    const createWallet = hdkey.fromMasterSeed(mneminicSeed).derivePath(hdpath)
+    const getWallet = createWallet.getWallet()
+    
+    this._web3.eth.accounts.wallet.add(getWallet.getPrivateKeyString())
+    return {
+      address: getWallet.getAddressString(),
+      privateKey: getWallet.getPrivateKeyString()
+    }
   }
   /**
    *

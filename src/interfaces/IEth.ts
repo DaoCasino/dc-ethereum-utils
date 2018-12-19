@@ -46,6 +46,14 @@ export interface ETHInstance {
   initContract: (abi: any, address: string) => Contract
   initAccount: (privateKey: string) => void
 
+  createAccountForMnemonic: (
+    mneminicSeed: string,
+    indexForCreate: number
+  ) => {
+    address: string,
+    privateKey: string
+  }
+
   saveWallet: (privateKey: string, walletPassword?: string) => void
   loadWallet: (walletPassword: string) => void
   getWalletAccount: () => any
