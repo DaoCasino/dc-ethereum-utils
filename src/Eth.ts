@@ -182,10 +182,14 @@ export class Eth implements ETHInstance {
   sendTransaction(
     contract: Contract,
     methodName: string,
-    args: any[]
-  ): Promise<any> {
+    args: any[],
+    addressFrom?: string
+  ): Promise<{
+    status: string,
+    receipt: any
+  }> {
     return new Promise((resolve, reject) => {
-      const from = this._account.address
+      const from = addressFrom || this._account.address
       const receipt = contract.methods[methodName](...args).send({
         from,
         gas: this._params.gasParams.limit,
@@ -220,7 +224,7 @@ export class Eth implements ETHInstance {
           const rcpt = receipt as any
           rcpt.off("confirmation")
           logger.debug("Transaction success")
-          resolve({ status: "success" })
+          resolve({ status: "success", receipt })
         }
       })
     })
@@ -301,6 +305,49 @@ export class Eth implements ETHInstance {
         balance,
         updated: Date.now()
       }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async sendToken(
+    from: string,
+    to: string,
+    amount: number
+  ): Promise<any> {
+    const amountToWei = Utils.bet2dec(amount)
+    try {
+      const transactionReceipt = await this.sendTransaction(
+        this._ERC20Contract,
+        'transferFrom',
+        [from, to, amountToWei],
+        from
+      )
+
+      if (transactionReceipt.status === 'success') {
+        return transactionReceipt.receipt
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async sendBlockchainCurrency(
+    from: string,
+    to: string,
+    amount: number
+  ): Promise<any> {
+    const amountToWei = this._web3.utils.toWei(`${amount}`, 'ether')
+    try {
+      const transactionReceipt = await this._web3.eth.sendTransaction({
+        from,
+        to,
+        value: amountToWei,
+        gas: this._params.gasParams.limit,
+        gasPrice: this._params.gasParams.price
+      })
+  
+      return transactionReceipt
     } catch (error) {
       throw error
     }
