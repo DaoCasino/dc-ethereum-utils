@@ -320,8 +320,8 @@ export class Eth implements BlockchainUtilsInstance {
     try {
       const { status, transactionHash } = await this.sendTransaction(
         this._ERC20Contract,
-        'transferFrom',
-        [from, to, amountToWei],
+        'transfer',
+        [to, amountToWei],
         from
       )
 
