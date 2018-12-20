@@ -1,14 +1,15 @@
 import {
   Cache,
   Balance,
-  EthParams,
-  ETHInstance,
   LastBalances,
-  SolidityTypeValue
-} from "./interfaces/IEth"
+  SolidityTypeValue,
+  TransactionReceipt,
+  BlockchainUtilsInstance
+} from '@daocasino/dc-blockchain-types'
 import BN from "bn.js"
 import Web3 from "web3"
 import hdkey from 'ethereumjs-wallet/hdkey'
+import { EthParams } from './interfaces/IEth'
 import { config, ABIDefinition } from "@daocasino/dc-configs"
 import { Logger } from "@daocasino/dc-logging"
 import { sign, recover } from "eth-lib/lib/account.js"
@@ -21,7 +22,7 @@ import Contract from "web3/eth/contract"
 
 const logger = new Logger("EthInstance")
 
-export class Eth implements ETHInstance {
+export class Eth implements BlockchainUtilsInstance {
   private _web3: Web3
   private _cache: Cache
   private _sign: any
@@ -29,6 +30,8 @@ export class Eth implements ETHInstance {
   private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
+
+  targetTransactionHash: string
 
   constructor(params: EthParams) {
     this._params = params
@@ -184,10 +187,7 @@ export class Eth implements ETHInstance {
     methodName: string,
     args: any[],
     addressFrom?: string
-  ): Promise<{
-    status: string,
-    receipt: any
-  }> {
+  ): Promise<TransactionReceipt> {
     return new Promise((resolve, reject) => {
       const from = addressFrom || this._account.address
       const receipt = contract.methods[methodName](...args).send({
@@ -215,6 +215,7 @@ export class Eth implements ETHInstance {
       })
 
       receipt.on("transactionHash", transactionHash => {
+        this.targetTransactionHash = transactionHash
         logger.debug("TX hash", transactionHash)
       })
       receipt.on("confirmation", confirmationCount => {
@@ -224,7 +225,7 @@ export class Eth implements ETHInstance {
           const rcpt = receipt as any
           rcpt.off("confirmation")
           logger.debug("Transaction success")
-          resolve({ status: "success", receipt })
+          resolve({ status: "success", transactionHash: this.targetTransactionHash })
         }
       })
     })
@@ -317,15 +318,15 @@ export class Eth implements ETHInstance {
   ): Promise<any> {
     const amountToWei = Utils.bet2dec(amount)
     try {
-      const transactionReceipt = await this.sendTransaction(
+      const { status, transactionHash } = await this.sendTransaction(
         this._ERC20Contract,
         'transferFrom',
         [from, to, amountToWei],
         from
       )
 
-      if (transactionReceipt.status === 'success') {
-        return transactionReceipt.receipt
+      if (status === 'success') {
+        return { status, transactionHash }
       }
     } catch (error) {
       throw error
@@ -336,7 +337,7 @@ export class Eth implements ETHInstance {
     from: string,
     to: string,
     amount: number
-  ): Promise<any> {
+  ): Promise<TransactionReceipt> {
     const amountToWei = this._web3.utils.toWei(`${amount}`, 'ether')
     try {
       const transactionReceipt = await this._web3.eth.sendTransaction({
@@ -347,7 +348,7 @@ export class Eth implements ETHInstance {
         gasPrice: this._params.gasParams.price
       })
   
-      return transactionReceipt
+      return { status: 'success', transactionHash: transactionReceipt.transactionHash }
     } catch (error) {
       throw error
     }
