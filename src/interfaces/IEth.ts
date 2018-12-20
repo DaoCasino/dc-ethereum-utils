@@ -69,7 +69,8 @@ export interface ETHInstance {
   sendTransaction: (
     contract: Contract,
     methodName: string,
-    args: any[]
+    args: any[],
+    addressFrom?: string
   ) => Promise<any>
 
   ERC20ApproveSafe: (
@@ -81,4 +82,15 @@ export interface ETHInstance {
   getBalances: (address?: string) => Promise<LastBalances>
   getEthBalance: (address: string) => Promise<Balance>
   getBetBalance: (address: string) => Promise<Balance>
+  
+  sendToken(
+    from: string,
+    to: string,
+    amount: number
+  ): Promise<any>
+  sendBlockchainCurrency(
+    from: string,
+    to: string,
+    amount: number
+  ): Promise<any>
 }
