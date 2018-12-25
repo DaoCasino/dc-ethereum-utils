@@ -26,7 +26,7 @@ export const bet2dec = (value: number | string): string => {
   return roundNum
 }
 
-export const generateStructoreForSign = (
+export const generateStructForSign = (
   ...signArguments: any[]
 ): SolidityTypeValue[] => {
   const structForSign = []
