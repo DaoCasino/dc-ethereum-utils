@@ -1,3 +1,4 @@
+import { SolidityTypeValue } from './interfaces/IEth'
 import web3_utils from 'web3-utils'
 
 const web3Sha3 = web3_utils.soliditySha3
@@ -23,6 +24,40 @@ export const bet2dec = (value: number | string): string => {
   }
 
   return roundNum
+}
+
+export const generateStructForSign = (
+  ...signArguments: any[]
+): SolidityTypeValue[] => {
+  const structForSign = []
+  for (let arg of signArguments) {
+    if (
+      Array.isArray(arg) &&
+      arg.every(element => (!web3_utils.isHexStrict(element) && !isNaN(element)))
+    ) {
+      structForSign.push({ t: 'uint256', v: arg })
+      continue
+    }
+
+    switch (true) {
+      case (typeof arg === 'boolean'):
+        structForSign.push({ t: 'bool', v: arg })
+        break
+      case (!web3_utils.isHexStrict(arg) && !isNaN(arg)):
+        structForSign.push({ t: 'uint256', v: arg })
+        break
+      case web3_utils.isAddress(arg):
+        structForSign.push({ t: 'address', v: arg })
+        break
+        case (web3_utils.hexToBytes(arg).length === 32):
+        structForSign.push({ t: 'bytes32', v: arg })
+        break
+      default:
+        structForSign.push({ t: 'bytes', v: arg })
+    }
+  }
+
+  return structForSign
 }
 
 export const bets2decs = (value: number[]): string[] => {

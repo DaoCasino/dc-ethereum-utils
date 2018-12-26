@@ -1,6 +1,6 @@
 {
   "name": "@daocasino/dc-ethereum-utils",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Utils to work with ethereum using web3 etc",
   "main": "./lib/index",
   "scripts": {
