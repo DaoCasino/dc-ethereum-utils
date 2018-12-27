@@ -115,6 +115,10 @@ export class Eth implements BlockchainUtilsInstance {
       privateKey: getWallet.getPrivateKeyString()
     }
   }
+
+  setDefaultAccount(privateKey: string): void {
+    this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
+  }
   /**
    *
    * @param privateKey
