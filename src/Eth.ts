@@ -30,7 +30,7 @@ export class Eth implements BlockchainUtilsInstance {
   private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
-
+  
   targetTransactionHash: string
 
   constructor(params: EthParams) {
@@ -42,7 +42,6 @@ export class Eth implements BlockchainUtilsInstance {
     )
 
     this._cache = { lastBalances: { bet: {}, eth: {} } }
-
     // Init ERC20 contract
     this._ERC20Contract = this.initContract(
       this._params.ERC20ContractInfo.abi,
@@ -52,6 +51,10 @@ export class Eth implements BlockchainUtilsInstance {
 
   getAccount(): Web3Account {
     return this._account
+  }
+
+  getGameAbi(): ABIDefinition[] {
+    return config.default.contracts.Game.abi
   }
 
   initContract(abi: ABIDefinition[], address: string): Contract {
