@@ -7,6 +7,8 @@
   },
   "include": ["src/**/*"],
   "references": [
-    { "path": "../dc-blockchain-types" }
+    { "path": "../dc-blockchain-types" },
+    { "path": "../dc-configs" },
+    { "path": "../dc-logging" }
   ]
 }
