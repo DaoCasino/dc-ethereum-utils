@@ -1,5 +1,6 @@
 import { SolidityTypeValue } from './interfaces/IEth'
 import web3_utils from 'web3-utils'
+import crypto from 'crypto'
 
 const web3Sha3 = web3_utils.soliditySha3
 const ZERO_X = '0x'
@@ -137,18 +138,7 @@ export const remove0x = str => {
 export const add0x = str => (str.startsWith(ZERO_X) ? str : `0x${str}`)
 
 export const makeSeed = ():string => {
-  let str = '0x'
-  const possible = 'abcdef0123456789'
-
-  for (let i = 0; i < 64; i++) {
-    if (new Date().getTime() % 2 === 0) {
-      str += possible.charAt(Math.floor(Math.random() * possible.length))
-    } else {
-      str += possible.charAt(Math.floor(Math.random() * (possible.length - 1)))
-    }
-  }
-
-  return web3Sha3(numToHex(str))
+  return add0x(crypto.randomBytes(32).toString('hex'))
 }
 
 export const concatUint8Array = (buffer1, buffer2) => {
