@@ -162,6 +162,7 @@ export class Eth implements BlockchainUtilsInstance {
 
   signData(argsToSign: SolidityTypeValue[]): string {
     const hash = Utils.sha3(...argsToSign)
+    console.log(this)
     const privateKey = Utils.add0x(this._account.privateKey)
     return this._sign(hash, privateKey)
   }
