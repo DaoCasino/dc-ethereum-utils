@@ -30,7 +30,7 @@ export class Eth implements BlockchainUtilsInstance {
   private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
-  
+
   targetTransactionHash: string
 
   constructor(params: EthParams) {
@@ -73,7 +73,7 @@ export class Eth implements BlockchainUtilsInstance {
       switch (process.env.DC_NETWORK) {
         case "ropsten":
           logger.warn(`
-            You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
+            You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/
             or use this random ${this._web3.eth.accounts.create().privateKey},
             but send Ropsten ETH and BETs to it before using
           `)
@@ -111,12 +111,16 @@ export class Eth implements BlockchainUtilsInstance {
     const hdpath = `m/44'/60'/0'/0/${indexForCreate}`
     const createWallet = hdkey.fromMasterSeed(mneminicSeed).derivePath(hdpath)
     const getWallet = createWallet.getWallet()
-    
+
     this._web3.eth.accounts.wallet.add(getWallet.getPrivateKeyString())
     return {
       address: getWallet.getAddressString(),
       privateKey: getWallet.getPrivateKeyString()
     }
+  }
+
+  setAddress(data: string): void {
+    this._account.address = data
   }
 
   setDefaultAccount(privateKey: string): void {
@@ -203,8 +207,8 @@ export class Eth implements BlockchainUtilsInstance {
         gas: this._params.gasParams.limit,
         gasPrice: this._params.gasParams.price
       })
-      logger.debug(`Sent transaction: 
-        contract: ${contract.options.address}, 
+      logger.debug(`Sent transaction:
+        contract: ${contract.options.address},
         method: ${methodName},
         from: ${from},
         args: ${JSON.stringify(args)}
@@ -355,7 +359,7 @@ export class Eth implements BlockchainUtilsInstance {
         gas: this._params.gasParams.limit,
         gasPrice: this._params.gasParams.price
       })
-  
+
       return { status: 'success', transactionHash: transactionReceipt.transactionHash }
     } catch (error) {
       throw error
