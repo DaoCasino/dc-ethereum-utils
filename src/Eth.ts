@@ -4,6 +4,7 @@ import {
   LastBalances,
   SolidityTypeValue,
   TransactionReceipt,
+  ERC20ApproveParams,
   BlockchainUtilsInstance
 } from '@daocasino/dc-blockchain-types'
 import BN from "bn.js"
@@ -30,7 +31,7 @@ export class Eth implements BlockchainUtilsInstance {
   private _ERC20Contract: Contract
   private _account: any
   private _params: EthParams
-  
+
   targetTransactionHash: string
 
   constructor(params: EthParams) {
@@ -73,7 +74,7 @@ export class Eth implements BlockchainUtilsInstance {
       switch (process.env.DC_NETWORK) {
         case "ropsten":
           logger.warn(`
-            You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
+            You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/
             or use this random ${this._web3.eth.accounts.create().privateKey},
             but send Ropsten ETH and BETs to it before using
           `)
@@ -111,7 +112,7 @@ export class Eth implements BlockchainUtilsInstance {
     const hdpath = `m/44'/60'/0'/0/${indexForCreate}`
     const createWallet = hdkey.fromMasterSeed(mneminicSeed).derivePath(hdpath)
     const getWallet = createWallet.getWallet()
-    
+
     this._web3.eth.accounts.wallet.add(getWallet.getPrivateKeyString())
     return {
       address: getWallet.getAddressString(),
@@ -162,7 +163,6 @@ export class Eth implements BlockchainUtilsInstance {
 
   signData(argsToSign: SolidityTypeValue[]): string {
     const hash = Utils.sha3(...argsToSign)
-    console.log(this)
     const privateKey = Utils.add0x(this._account.privateKey)
     return this._sign(hash, privateKey)
   }
@@ -203,8 +203,8 @@ export class Eth implements BlockchainUtilsInstance {
         gas: this._params.gasParams.limit,
         gasPrice: this._params.gasParams.price
       })
-      logger.debug(`Sent transaction: 
-        contract: ${contract.options.address}, 
+      logger.debug(`Sent transaction:
+        contract: ${contract.options.address},
         method: ${methodName},
         from: ${from},
         args: ${JSON.stringify(args)}
@@ -239,22 +239,26 @@ export class Eth implements BlockchainUtilsInstance {
     })
   }
 
-  async ERC20ApproveSafe(
-    spender: string,
-    amount: number,
-    minAmount: number = amount
-  ): Promise<number> {
-    const allowance: number = await this.allowance(spender)
+  async ERC20ApproveSafe(approveParams: ERC20ApproveParams): Promise<number> {
+    const {
+      amount,
+      spender,
+      minAmount = amount,
+      addressFrom
+    } = approveParams
+    const allowance: number = await this.allowance(spender, addressFrom)
 
     if (0 < allowance && allowance < minAmount) {
-      await this.sendTransaction(this._ERC20Contract, "approve", [spender, 0])
+      await this.sendTransaction(this._ERC20Contract, "approve", [spender, 0], addressFrom)
     }
 
     if (allowance < minAmount) {
-      await this.sendTransaction(this._ERC20Contract, "approve", [
-        spender,
-        this._web3.utils.toWei(amount.toString())
-      ])
+      await this.sendTransaction(
+        this._ERC20Contract,
+        "approve",
+        [ spender, this._web3.utils.toWei(amount.toString()) ],
+        addressFrom
+      )
     }
 
     return allowance
@@ -355,7 +359,7 @@ export class Eth implements BlockchainUtilsInstance {
         gas: this._params.gasParams.limit,
         gasPrice: this._params.gasParams.price
       })
-  
+
       return { status: 'success', transactionHash: transactionReceipt.transactionHash }
     } catch (error) {
       throw error
