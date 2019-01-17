@@ -1,9 +1,9 @@
-import { Eth } from "../Eth"
-import * as Utils from "../utils"
-import { config } from "@daocasino/dc-configs"
-import { Logger } from "@daocasino/dc-logging"
+import { Eth } from '../Eth'
+import * as Utils from '../utils'
+import { config } from '@daocasino/dc-configs'
+import { Logger } from '@daocasino/dc-logging'
 
-const logger = new Logger("eth test")
+const logger = new Logger('eth test')
 const {
   gasPrice: price,
   gasLimit: limit,
@@ -21,7 +21,7 @@ const test1 = async () => {
     gasParams: { price, limit }
   })
   const balance = await eth.getBetBalance(
-    "0xcfe806e85787c1490e85c8028efda159616371c1"
+    '0xcfe806e85787c1490e85c8028efda159616371c1'
   )
   logger.debug(balance)
 }
