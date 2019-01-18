@@ -1,14 +1,14 @@
-import Contract from "web3/eth/contract"
-import { Account as Web3Account } from "web3/eth/accounts"
-import { ContractInfo } from "@daocasino/dc-configs"
+import Contract from 'web3/eth/contract'
+import { Account as Web3Account } from 'web3/eth/accounts'
+import { ContractInfo } from '@daocasino/dc-configs'
 
 type SolidityType =
-  | "bytes32"
-  | "address"
-  | "uint"
-  | "uint256"
-  | "bytes"
-  | "bool"
+  | 'bytes32'
+  | 'address'
+  | 'uint'
+  | 'uint256'
+  | 'bytes'
+  | 'bool'
 
 export interface SolidityTypeValue {
   t: SolidityType
