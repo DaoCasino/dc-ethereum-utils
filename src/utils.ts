@@ -1,4 +1,4 @@
-import { SolidityTypeValue } from './interfaces/IEth'
+import { SolidityTypeValue } from '@daocasino/dc-blockchain-types'
 import web3_utils from 'web3-utils'
 import crypto from 'crypto'
 
