@@ -28,7 +28,6 @@
     "truffle-hdwallet-provider": "1.0.0-web3one.0"
   },
   "devDependencies": {
-    "husky": "1.1.1",
     "tslint": "5.11.0",
     "typescript": "^3.1.2"
   },
