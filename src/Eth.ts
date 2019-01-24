@@ -1,251 +1,291 @@
-import BN from "bn.js";
-import Web3 from "web3";
-import crypto from "crypto";
-import { config, ContractInfo } from "dc-configs";
-import fetch from "node-fetch";
-import { sign, recover } from "eth-lib/lib/account.js";
-import * as Utils from "./utils";
-import Contract from "web3/eth/contract";
+import {
+  Cache,
+  Balance,
+  EthParams,
+  ETHInstance,
+  LastBalances,
+  SolidityTypeValue
+} from "./interfaces/IEth"
 
-interface Balance {
-  balance?: number;
-  updated?: number;
-}
-interface LastBalances {
-  bet: Balance;
-  eth: Balance;
-}
-interface Cache {
-  lastBalances: LastBalances;
-}
+import BN from "bn.js"
+import Web3 from "web3"
+import crypto from "crypto"
+import { config, ABIDefinition } from "@daocasino/dc-configs"
+import { Logger } from "@daocasino/dc-logging"
+import { sign, recover } from "eth-lib/lib/account.js"
+import BigInteger from "node-rsa/src/libs/jsbn"
 
-export interface GasParams {
-  //_config.network
-  price: number;
-  limit: number;
-}
+import * as Utils from "./utils"
 
-export interface EthParams {
-  privateKey: string;
-  httpProviderUrl: string; //_config.network.rpc_url
-  ERC20ContractInfo: ContractInfo; //_config.network.contracts.erc20
-  faucetServerUrl: string; //_config.faucet.get_acc_url
-  gasParams: GasParams;
-}
+import { Account as Web3Account } from "web3/eth/accounts"
+import Contract from "web3/eth/contract"
 
-export class Eth {
-  private _web3: Web3;
-  private _getAccountPromise: Promise<string>;
-  private _cache: Cache;
-  private _sign: any;
-  private _recover: any;
-  private _ERC20Contract: any;
-  private _payChannelContract: any;
-  private _account: any;
-  private _store: any;
-  private _params: EthParams;
+const logger = new Logger("EthInstance")
+
+export class Eth implements ETHInstance {
+  private _web3: Web3
+  private _cache: Cache
+  private _sign: any
+  private _recover: any
+  private _ERC20Contract: Contract
+  private _account: any
+  private _params: EthParams
+
   constructor(params: EthParams) {
-    this._params = params;
-    this._sign = sign;
-    this._recover = recover;
+    this._params = params
+    this._sign = sign
+    this._recover = recover
     this._web3 = new Web3(
       new Web3.providers.HttpProvider(params.httpProviderUrl)
-    );
+    )
 
-    this._cache = { lastBalances: { bet: {}, eth: {} } };
-    this._store = {};
+    this._cache = { lastBalances: { bet: {}, eth: {} } }
+
     // Init ERC20 contract
-    this._ERC20Contract = new this._web3.eth.Contract(
-      params.ERC20ContractInfo.abi,
-      params.ERC20ContractInfo.address
-    );
+    this._ERC20Contract = this.initContract(
+      this._params.ERC20ContractInfo.abi,
+      this._params.ERC20ContractInfo.address
+    )
+  }
 
-    // setTimeout(async ()=>{
-    //   this._cache.lastBalances = await this.getBalances()
-    //   console.log('Acc balance '+ this.acc.address, this._cache.lastBalances );
-    // }, 5000)
+  getAccount(): Web3Account {
+    return this._account
   }
-  account() {
-    return this._account;
+
+  initContract(abi: ABIDefinition[], address: string): Contract {
+    return new this._web3.eth.Contract(abi, address)
   }
-  getContract(abi: any, address: string) {
-    return new this._web3.eth.Contract(abi, address);
-  }
-  async initAccount() {
-    const { privateKey } = this._params;
+
+  initAccount(privateKey: string): void {
     if (!privateKey) {
-      console.error(`Bankroller account PRIVATE_KEY required!`);
-      console.info(`set ENV variable privateKey`);
+      const errorMessage =
+        typeof window === "undefined"
+          ? `ENV variable ACCOUNT_PRIVATE_KEY required!
+           set ENV variable ACCOUNT_PRIVATE_KEY and init again`
+          : `Private key is undefined
+           Please set private key in params and init again`
 
-      if (process.env.DC_NETWORK === "ropsten") {
-        console.info(`You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
-          or use this random ${
-            this._web3.eth.accounts.create().privateKey
-          } , but send Ropsten ETH and BETs to it before using
-        `);
-      } else if (process.env.DC_NETWORK === "sdk") {
-        console.info(
-          `For local SDK env you can use this privkey: 0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5`
-        );
-      } else {
-        console.info(
-          `You can use this privkey: ${
-            this._web3.eth.accounts.create().privateKey
-          }, but be sure that account have ETH and BETs `
-        );
+      switch (process.env.DC_NETWORK) {
+        case "ropsten":
+          logger.warn(`
+            You can get account with test ETH and BETs , from our faucet https://faucet.dao.casino/ 
+            or use this random ${this._web3.eth.accounts.create().privateKey},
+            but send Ropsten ETH and BETs to it before using
+          `)
+          break
+        case "sdk":
+          logger.warn(`
+            For local SDK env you can use this privkey:
+            0x8d5366123cb560bb606379f90a0bfd4769eecc0557f1b362dcae9012b548b1e5
+          `)
+          break
+        default:
+          logger.warn(`
+            You can use this privkey: ${
+              this._web3.eth.accounts.create().privateKey
+            },
+            but be sure that account have ETH and BETs
+          `)
+          break
       }
 
-      process.exit();
+      throw new Error(errorMessage)
     }
 
-    this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey);
-    this._web3.eth.accounts.wallet.add(privateKey);
-    return true;
+    this._account = this._web3.eth.accounts.privateKeyToAccount(privateKey)
+    this._web3.eth.accounts.wallet.add(privateKey)
+  }
+  /**
+   *
+   * @param privateKey
+   * @param walletPassword use only in browser
+   */
+  saveWallet(privateKey: string, walletPassword?: string): void {
+    if (
+      typeof window !== "undefined" &&
+      typeof walletPassword === "undefined"
+    ) {
+      throw new Error("walletPassword is not defined")
+    }
+
+    if (typeof privateKey === "undefined") {
+      throw new Error("privateKey is not defined")
+    }
+
+    this._web3.eth.accounts.wallet.add(privateKey)
+    if (walletPassword && typeof window !== "undefined") {
+      this._web3.eth.accounts.wallet.save(
+        walletPassword,
+        this._params.walletName
+      )
+    }
   }
 
-  // TODO WTF???
-  signHash(rawHash) {
-    const hash = Utils.add0x(rawHash);
-    if (!this._web3.utils.isHex(hash)) {
-      Utils.debugLog(hash + " is not correct hex");
-      Utils.debugLog(
-        "Use DCLib.Utils.makeSeed or Utils.soliditySHA3(your_args) to create valid hash"
-      );
+  loadWallet(walletPassword: string): void {
+    if (typeof walletPassword === "undefined") {
+      throw new Error("walletPassword is not define")
     }
-    return this._sign(hash, Utils.add0x(this._account.privateKey));
+
+    this._web3.eth.accounts.wallet.load(walletPassword, this._params.walletName)
   }
-  
-  // signHash2(rawHash) {
-  //   const hash = Utils.add0x(rawHash);
-  //   const privateKey = Utils.add0x(this._account.privateKey)
-  //   const curve = crypto.createSign('secp256k1');
-  //   curve.setPrivateKey(Buffer.from(privateKey, 'hex'))
-  //   return crypto.
-  // }
-  
-  recover(stateHash, peerSign): string {
-    return this._recover(stateHash, peerSign);
+
+  getWalletAccount(): any {
+    return this._web3.eth.accounts.wallet[0]
+  }
+
+  signData(argsToSign: SolidityTypeValue[]): string {
+    const hash = Utils.sha3(...argsToSign)
+    const privateKey = Utils.add0x(this._account.privateKey)
+    return this._sign(hash, privateKey)
+  }
+
+  signHash(hash: string): string {
+    const privateKey = Utils.add0x(this._account.privateKey)
+    return this._sign(hash, privateKey)
+  }
+
+  recover(hash: string, peerSign: string): string {
+    return this._recover(hash, peerSign)
   }
 
   getBlockNumber(): Promise<any> {
-    return this._web3.eth.getBlockNumber();
-  }
-  
-  randomHash() {
-    return crypto.randomBytes(16).toString("hex");
+    return this._web3.eth.getBlockNumber()
   }
 
-  numFromHash(randomHash, min = 0, max = 100) {
-    if (min > max) {
-      let c = min;
-      min = max;
-      max = c;
-    }
-    if (min === max) return max;
-    max += 1;
-
-    const hashBN = new BN(Utils.remove0x(randomHash), 16);
-    const divBN = new BN(max - min, 10);
-    const divRes = hashBN.mod(divBN);
-
-    return +divRes.mod + min;
-  }
-
-  sigRecover(raw_msg, signed_msg) {
-    raw_msg = Utils.remove0x(raw_msg);
-    return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
-  }
-
-  sigHashRecover(raw_msg, signed_msg) {
-    return this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase();
-  }
-
-  checkSig(raw_msg, signed_msg, need_address) {
-    raw_msg = Utils.remove0x(raw_msg);
-    return (
-      need_address.toLowerCase() ===
-      this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
-    );
-  }
-  checkHashSig(raw_msg, signed_msg, need_address) {
-    return (
-      need_address.toLowerCase() ===
-      this._web3.eth.accounts.recover(raw_msg, signed_msg).toLowerCase()
-    );
-  }
-
-  async getAccountFromServer(): Promise<string> {
-    if (this._getAccountPromise) {
-      await this._getAccountPromise;
-    }
-    if (this._store.account_from_server) return this._store.account_from_server;
-
-    this._getAccountPromise = fetch(this._params.faucetServerUrl, {}).then(
-      res => res.json()
-    );
-
-    const requestResult = await this._getAccountPromise;
-    this._store.account_from_server = JSON.parse(requestResult);
-    Utils.debugLog(["Server account data: ", this._store.account_from_server]);
-    return this._store.account_from_server.privateKey;
-  }
   allowance(
     spender: string,
     address: string = this._account.address
   ): Promise<any> {
-    return this._ERC20Contract.methods.allowance(address, spender).call();
+    return this._ERC20Contract.methods
+      .allowance(address, spender)
+      .call()
+      .then(weis => Utils.dec2bet(weis))
   }
 
-  async ERC20ApproveSafe(spender: string, amount: number) {
-    let allowance = await this.allowance(spender);
-    if (0 < allowance && allowance < amount) {
-      await this.ERC20Approve(spender, 0);
-    }
-    if (allowance < amount) {
-      await this.ERC20Approve(spender, amount);
-    }
-  }
-  async ERC20Approve(spender: string, amount: number) {
-    const receipt = await this._ERC20Contract.methods
-      .approve(spender, this._web3.utils.toWei(amount.toString()))
-      .send({
-        from: this._account.address,
-        gasPrice: this._params.gasParams.price,
-        gas: this._params.gasParams.limit
-      });
+  sendTransaction(
+    contract: Contract,
+    methodName: string,
+    args: any[]
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const from = this._account.address
+      const receipt = contract.methods[methodName](...args).send({
+        from,
+        gas: this._params.gasParams.limit,
+        gasPrice: this._params.gasParams.price
+      })
+      logger.debug(`Sent transaction: 
+        contract: ${contract.options.address}, 
+        method: ${methodName},
+        from: ${from},
+        args: ${JSON.stringify(args)}
+        gas: ${this._params.gasParams.limit}
+        gasPrice: ${this._params.gasParams.price}
+      `)
 
-    if (
-      typeof receipt === "undefined" ||
-      !["0x01", "0x1", true].includes(receipt.status)
-    ) {
-      throw new Error(receipt);
+      // Repeat if error
+      receipt.catch(err => {
+        logger.error("_REPEAT sendTransaction: " + methodName, err)
+        reject(err)
+      })
+      receipt.on("error", err => {
+        logger.error("REPEAT sendTransaction: " + methodName, err)
+        reject(err)
+      })
+
+      receipt.on("transactionHash", transactionHash => {
+        logger.debug("TX hash", transactionHash)
+      })
+      receipt.on("confirmation", confirmationCount => {
+        if (confirmationCount <= config.default.waitForConfirmations) {
+          logger.debug(`${methodName} confirmationCount: ${confirmationCount}`)
+        } else {
+          const rcpt = receipt as any
+          rcpt.off("confirmation")
+          logger.debug("Transaction success")
+          resolve({ status: "success" })
+        }
+      })
+    })
+  }
+
+  async ERC20ApproveSafe(
+    spender: string,
+    amount: number,
+    minAmount: number = amount
+  ): Promise<number> {
+    const allowance: number = await this.allowance(spender)
+
+    if (0 < allowance && allowance < minAmount) {
+      await this.sendTransaction(this._ERC20Contract, "approve", [spender, 0])
     }
+
+    if (allowance < minAmount) {
+      await this.sendTransaction(this._ERC20Contract, "approve", [
+        spender,
+        this._web3.utils.toWei(amount.toString())
+      ])
+    }
+
+    return allowance
   }
 
   async getBalances(
     address: string = this._account.address
   ): Promise<LastBalances> {
-    this._cache.lastBalances.bet = await this.getBetBalance(address);
-    this._cache.lastBalances.eth = await this.getEthBalance(address);
-    return this._cache.lastBalances;
+    try {
+      const [bet, eth] = await Promise.all([
+        this.getBetBalance(address),
+        this.getEthBalance(address)
+      ])
+
+      this._cache.lastBalances.bet = bet
+      this._cache.lastBalances.eth = eth
+
+      return this._cache.lastBalances
+    } catch (error) {
+      throw error
+    }
   }
 
-  async getEthBalance(address): Promise<Balance> {
-    if (!address) throw new Error("Empty address in ETH balance request");
-    const weiBalance = await this._web3.eth.getBalance(address);
-    const bnBalance: any = this._web3.utils.fromWei(weiBalance, "ether");
-    return {
-      balance: Number(bnBalance),
-      updated: Date.now()
-    };
+  async getEthBalance(address: string): Promise<Balance> {
+    if (!address) {
+      throw new Error("Empty address in ETH balance request")
+    }
+
+    try {
+      const weiBalance: number | BN = await this._web3.eth.getBalance(address)
+      const bnBalance: string | BN = this._web3.utils.fromWei(
+        weiBalance,
+        "ether"
+      )
+
+      return {
+        balance: Number(bnBalance),
+        updated: Date.now()
+      }
+    } catch (error) {
+      throw error
+    }
   }
 
-  async getBetBalance(address): Promise<Balance> {
-    if (!address) throw new Error("Empty address in BET balance request");
-    const decBalance = await this._ERC20Contract.methods
-      .balanceOf(address)
-      .call();
-    const balance = Utils.dec2bet(decBalance);
-    return { balance, updated: Date.now() };
+  async getBetBalance(address: string): Promise<Balance> {
+    if (!address) {
+      throw new Error("Empty address in BET balance request")
+    }
+
+    try {
+      const decBalance: number = await this._ERC20Contract.methods
+        .balanceOf(address)
+        .call()
+      const balance: number = Utils.dec2bet(decBalance)
+
+      return {
+        balance,
+        updated: Date.now()
+      }
+    } catch (error) {
+      throw error
+    }
   }
 }

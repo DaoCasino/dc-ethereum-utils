@@ -1,141 +1,162 @@
-import web3_utils from "web3-utils";
-import fetch from "node-fetch";
-import debug from "debug";
+import { SolidityTypeValue } from './interfaces/IEth'
+import web3_utils from 'web3-utils'
 
-const web3_sha3 = web3_utils.soliditySha3;
-const ZERO_X = "0x";
+const web3Sha3 = web3_utils.soliditySha3
+const ZERO_X = '0x'
+const NUMS_FOR_ROUND = 6
 
-export const debugLog = function(data, loglevel = "light", enable = true) {
-  let log = debug("");
+export const sha3 = web3Sha3
 
-  if (loglevel === "hight") log.enabled = true;
+export const dec2bet = (value: number | string): number  => {
+  const numInWei = web3_utils.fromWei(numToHex(value))
+  return Number(numInWei)
+}
 
-  loglevel === "light" && !enable
-    ? (log.enabled = false)
-    : (log.enabled = true);
-
-  if (loglevel === "error") {
-    log = debug(loglevel);
-    log.enabled = true;
+export const bet2dec = (value: number | string): string => {
+  let numInWei = web3_utils.toWei(value.toString())
+  if (~numInWei.indexOf('.')) {
+    numInWei = numInWei.split('.')[0]
   }
 
-  if (loglevel === "none") log.enabled = false;
-
-  if (Array.isArray(data)) return log(...data);
-
-  return log(data);
-};
-export const localGameContract = async url => {
-  try {
-    const res = await fetch(url);
-    return await res.json();
-  } catch (err) {
-    throw new Error(err);
+  let roundNum = numInWei.substr(0, numInWei.length - NUMS_FOR_ROUND)
+  for (let i = 0; i < NUMS_FOR_ROUND; i++) {
+    roundNum += '0'
   }
-};
 
-export const sha3 = web3_sha3;
+  return roundNum
+}
 
-export const dec2bet = function(val, r = 2) {
-  return web3_utils.fromWei(numToHex(val)) * 1;
-};
+export const generateStructForSign = (
+  ...signArguments: any[]
+): SolidityTypeValue[] => {
+  const structForSign = []
+  for (let arg of signArguments) {
+    if (
+      Array.isArray(arg) &&
+      arg.every(element => (!web3_utils.isHexStrict(element) && !isNaN(element)))
+    ) {
+      structForSign.push({ t: 'uint256', v: arg })
+      continue
+    }
 
-export const bet2dec = (value: number) => {
-  let b = web3_utils.toWei(value.toString());
-  if (b.indexOf(".") > -1) {
-    b = b.split(".")[0] * 1;
-  }
-  return b;
-};
-
-export const clearcode = function(string) {
-  return string
-    .toString()
-    .split("\t")
-    .join("")
-    .split("\n")
-    .join("")
-    .split("  ")
-    .join(" ");
-};
-export const checksum = function(string) {
-  return sha3(clearcode(string));
-};
-
-export const toFixed = (value, precision) => {
-  precision = Math.pow(10, precision);
-  return Math.ceil(value * precision) / precision;
-};
-
-export const numToHex = num => {
-  return num.toString(16);
-};
-
-export const hexToNum = str => {
-  return parseInt(str, 16);
-};
-
-export const hexToString = hex => {
-  let str = "";
-  for (let i = 0; i < hex.length; i += 2) {
-    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-  }
-  return str;
-};
-
-export const pad = (num, size) => {
-  let s = num + "";
-  while (s.length < size) s = "0" + s;
-  return s;
-};
-
-export const reverseForIn = (obj, f) => {
-  let arr = [];
-  for (let key in obj) {
-    arr.push(key);
-  }
-  for (let i = arr.length - 1; i >= 0; i--) {
-    f.call(obj, arr[i]);
-  }
-};
-
-export const buf2hex = buffer => {
-  return Array.prototype.map
-    .call(new Uint8Array(buffer), x => ("00" + x.toString(16)).slice(-2))
-    .join("");
-};
-export const buf2bytes32 = buffer => {
-  return "0x" + buf2hex(buffer);
-};
-
-export const remove0x = str => {
-  if (str.length > 2 && str.substr(0, 2) === ZERO_X) {
-    // debugLog(['0x prefix removed from  ', str.substr(0, 8) + '...'], _config.loglevel)
-    str = str.substr(2);
-  }
-  return str;
-};
-
-export const add0x = str => (str.startsWith(ZERO_X) ? str : `0x${str}`);
-
-export const makeSeed = () => {
-  var str = "0x";
-  var possible = "abcdef0123456789";
-
-  for (var i = 0; i < 64; i++) {
-    if (new Date().getTime() % 2 === 0) {
-      str += possible.charAt(Math.floor(Math.random() * possible.length));
-    } else {
-      str += possible.charAt(Math.floor(Math.random() * (possible.length - 1)));
+    switch (true) {
+      case (typeof arg === 'boolean'):
+        structForSign.push({ t: 'bool', v: arg })
+        break
+      case (!web3_utils.isHexStrict(arg) && !isNaN(arg)):
+        structForSign.push({ t: 'uint256', v: arg })
+        break
+      case web3_utils.isAddress(arg):
+        structForSign.push({ t: 'address', v: arg })
+        break
+        case (web3_utils.hexToBytes(arg).length === 32):
+        structForSign.push({ t: 'bytes32', v: arg })
+        break
+      default:
+        structForSign.push({ t: 'bytes', v: arg })
     }
   }
 
-  return web3_sha3(numToHex(str));
-};
+  return structForSign
+}
 
-export const concatUint8Array = function(buffer1, buffer2) {
-  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-  tmp.set(new Uint8Array(buffer1), 0);
-  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp.buffer;
-};
+export const bets2decs = (value: number[]): string[] => {
+  const arr: string[] = []
+  for(let i = 0; i < value.length; i++){
+    arr.push(bet2dec(value[i]))
+  }
+
+  return arr
+}
+
+export const betsSumm = (arr: number[] ): string => {
+  return bet2dec(arr.reduce((a, b)=> a + b))
+}
+
+export const flatternArr = (arr: any[][]) => {
+   return arr.reduce((acc, val) => Array.isArray(val) ? acc.concat(flatternArr(val)) : acc.concat(val), [])
+}
+
+export const clearcode = string => {
+  return string
+    .toString()
+    .split('\t')
+    .join('')
+    .split('\n')
+    .join('')
+    .split('  ')
+    .join(' ')
+}
+export const checksum = string => {
+  return sha3(clearcode(string))
+}
+
+export const toFixed = (value, precision) => {
+  precision = Math.pow(10, precision)
+  return Math.ceil(value * precision) / precision
+}
+
+export const numToHex = num => {
+  return num.toString(16)
+}
+
+export const hexToNum = str => {
+  return parseInt(str, 16)
+}
+
+export const hexToString = hex => {
+  let str = ''
+  for (let i = 0; i < hex.length; i += 2) {
+    str += String.fromCharCode(parseInt(hex.substr(i, 2), 16))
+  }
+  return str
+}
+
+export const pad = (num, size) => {
+  let s = num + ''
+  while (s.length < size) s = '0' + s
+  return s
+}
+
+export const buf2hex = buffer => {
+  return Array.prototype.map
+    .call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2))
+    .join('')
+}
+export const buf2bytes32 = buffer => {
+  return '0x' + buf2hex(buffer)
+}
+
+export const remove0x = str => {
+  if (str.length > 2 && str.substr(0, 2) === ZERO_X) {
+    str = str.substr(2)
+  }
+  return str
+}
+
+export const add0x = str => (str.startsWith(ZERO_X) ? str : `0x${str}`)
+
+export const makeSeed = ():string => {
+  let str = '0x'
+  const possible = 'abcdef0123456789'
+
+  for (let i = 0; i < 64; i++) {
+    if (new Date().getTime() % 2 === 0) {
+      str += possible.charAt(Math.floor(Math.random() * possible.length))
+    } else {
+      str += possible.charAt(Math.floor(Math.random() * (possible.length - 1)))
+    }
+  }
+
+  return web3Sha3(numToHex(str))
+}
+
+export const concatUint8Array = (buffer1, buffer2) => {
+  const tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength)
+  tmp.set(new Uint8Array(buffer1), 0)
+  tmp.set(new Uint8Array(buffer2), buffer1.byteLength)
+  return tmp.buffer
+}
+
+
+
